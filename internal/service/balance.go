@@ -33,16 +33,25 @@ type AdjustResult struct {
 	NewRemaining int64
 }
 
-type BalanceService struct {
-	repo       *repository.UserRepository
+type BalanceService interface {
+	Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*TransferResult, error)
+	TransferToAll(chatID, senderID int64, delta int64) (*TransferAllResult, error)
+	GetDailyBalances(chatID int64) ([]DailyBalance, error)
+	AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*AdjustResult, error)
+	DailyLimit() int64
+}
+
+// balanceService implements BalanceSvc interface
+type balanceService struct {
+	repo       repository.UserRepository
 	superAdmin string
 }
 
-func NewBalanceService(repo *repository.UserRepository, superAdmin string) *BalanceService {
-	return &BalanceService{repo: repo, superAdmin: superAdmin}
+func NewBalanceService(repo repository.UserRepository, superAdmin string) *balanceService {
+	return &balanceService{repo: repo, superAdmin: superAdmin}
 }
 
-func (s *BalanceService) Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*TransferResult, error) {
+func (s *balanceService) Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*TransferResult, error) {
 	if senderID == targetID {
 		return nil, ErrSelfTransfer
 	}
@@ -81,7 +90,7 @@ func (s *BalanceService) Transfer(chatID, senderID, targetID int64, targetUserna
 	}, nil
 }
 
-func (s *BalanceService) TransferToAll(chatID, senderID int64, delta int64) (*TransferAllResult, error) {
+func (s *balanceService) TransferToAll(chatID, senderID int64, delta int64) (*TransferAllResult, error) {
 	if delta > maxTransactionAmount || delta < -maxTransactionAmount {
 		return nil, ErrTransactionLimit
 	}
@@ -117,7 +126,7 @@ func (s *BalanceService) TransferToAll(chatID, senderID int64, delta int64) (*Tr
 	}, nil
 }
 
-func (s *BalanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) {
+func (s *balanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) {
 	users, err := s.repo.GetChatStats(chatID)
 	if err != nil {
 		return nil, err
@@ -147,7 +156,7 @@ func (s *BalanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) 
 	return result, nil
 }
 
-func (s *BalanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*AdjustResult, error) {
+func (s *balanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*AdjustResult, error) {
 	if s.superAdmin == "" || !strings.EqualFold(adminUsername, s.superAdmin) {
 		return nil, ErrNotAuthorized
 	}
@@ -166,7 +175,7 @@ func (s *BalanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUse
 	}, nil
 }
 
-func (s *BalanceService) DailyLimit() int64 {
+func (s *balanceService) DailyLimit() int64 {
 	return s.repo.DailyLimit()
 }
 

@@ -14,17 +14,17 @@ var deltaRe = regexp.MustCompile(`^([+-]?\d+)$`)
 
 type Handlers struct {
 	bot            *tele.Bot
-	userService    *service.UserService
-	balanceService *service.BalanceService
-	betService     *service.BetService
+	userService    service.UserService
+	balanceService service.BalanceService
+	betService     service.BetService
 	msg            *i18n.Messages
 }
 
 func New(
 	bot *tele.Bot,
-	userSvc *service.UserService,
-	balanceSvc *service.BalanceService,
-	betSvc *service.BetService,
+	userSvc service.UserService,
+	balanceSvc service.BalanceService,
+	betSvc service.BetService,
 	msg *i18n.Messages,
 ) *Handlers {
 	return &Handlers{

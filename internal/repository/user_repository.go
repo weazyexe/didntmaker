@@ -9,21 +9,38 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserRepository struct {
+type UserRepository interface {
+	DailyLimit() int64
+	GetOrCreateUser(chatID, telegramID int64, username, firstName string) (*models.User, error)
+	GetUserByUsername(chatID int64, username string) (*models.User, error)
+	GetUserByTelegramID(chatID, telegramID int64) (*models.User, error)
+	UpdateBalance(chatID, telegramID int64, delta int64) (*models.User, int64, error)
+	UpdateBalanceByUsername(chatID int64, username string, delta int64) (*models.User, int64, error)
+	GetChatStats(chatID int64) ([]models.User, error)
+	UpdateBalanceForAllExcept(chatID, exceptTelegramID int64, delta int64) (int, error)
+	CountUsersExcept(chatID, exceptTelegramID int64) (int64, error)
+	GetDailyRemaining(chatID, telegramID int64) (int64, error)
+	AddDailyGiven(chatID, telegramID int64, amount int64) error
+	CanBetToday(chatID, telegramID int64) (bool, error)
+	ApplyBetResult(chatID, telegramID int64, won bool) error
+	AddDailyLimitByUsername(chatID int64, username string, delta int64) (oldRemaining, newRemaining int64, err error)
+}
+
+type userRepository struct {
 	db         *gorm.DB
 	dailyLimit int64
 }
 
-func NewUserRepository(db *gorm.DB, dailyLimit int64) *UserRepository {
+func NewUserRepository(db *gorm.DB, dailyLimit int64) *userRepository {
 	slog.Info("user repository created", "daily_limit", dailyLimit)
-	return &UserRepository{db: db, dailyLimit: dailyLimit}
+	return &userRepository{db: db, dailyLimit: dailyLimit}
 }
 
-func (r *UserRepository) DailyLimit() int64 {
+func (r *userRepository) DailyLimit() int64 {
 	return r.dailyLimit
 }
 
-func (r *UserRepository) GetOrCreateUser(chatID, telegramID int64, username, firstName string) (*models.User, error) {
+func (r *userRepository) GetOrCreateUser(chatID, telegramID int64, username, firstName string) (*models.User, error) {
 	var user models.User
 	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 
@@ -57,7 +74,7 @@ func (r *UserRepository) GetOrCreateUser(chatID, telegramID int64, username, fir
 	return &user, nil
 }
 
-func (r *UserRepository) GetUserByUsername(chatID int64, username string) (*models.User, error) {
+func (r *userRepository) GetUserByUsername(chatID int64, username string) (*models.User, error) {
 	var user models.User
 	result := r.db.Where("chat_id = ? AND username = ?", chatID, username).First(&user)
 	if result.Error != nil {
@@ -66,7 +83,7 @@ func (r *UserRepository) GetUserByUsername(chatID int64, username string) (*mode
 	return &user, nil
 }
 
-func (r *UserRepository) GetUserByTelegramID(chatID, telegramID int64) (*models.User, error) {
+func (r *userRepository) GetUserByTelegramID(chatID, telegramID int64) (*models.User, error) {
 	var user models.User
 	result := r.db.Where("chat_id = ? AND telegram_id = ?", chatID, telegramID).First(&user)
 	if result.Error != nil {
@@ -75,7 +92,7 @@ func (r *UserRepository) GetUserByTelegramID(chatID, telegramID int64) (*models.
 	return &user, nil
 }
 
-func (r *UserRepository) UpdateBalance(chatID, telegramID int64, delta int64) (*models.User, int64, error) {
+func (r *userRepository) UpdateBalance(chatID, telegramID int64, delta int64) (*models.User, int64, error) {
 	var user models.User
 	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 	if result.Error != nil {
@@ -101,7 +118,7 @@ func (r *UserRepository) UpdateBalance(chatID, telegramID int64, delta int64) (*
 	return &user, oldBalance, nil
 }
 
-func (r *UserRepository) UpdateBalanceByUsername(chatID int64, username string, delta int64) (*models.User, int64, error) {
+func (r *userRepository) UpdateBalanceByUsername(chatID int64, username string, delta int64) (*models.User, int64, error) {
 	var user models.User
 	result := r.db.Where("chat_id = ? AND username = ?", chatID, username).First(&user)
 	if result.Error != nil {
@@ -127,7 +144,7 @@ func (r *UserRepository) UpdateBalanceByUsername(chatID int64, username string, 
 	return &user, oldBalance, nil
 }
 
-func (r *UserRepository) GetChatStats(chatID int64) ([]models.User, error) {
+func (r *userRepository) GetChatStats(chatID int64) ([]models.User, error) {
 	var users []models.User
 	result := r.db.Where("chat_id = ?", chatID).Order("balance ASC").Find(&users)
 	if result.Error != nil {
@@ -136,7 +153,7 @@ func (r *UserRepository) GetChatStats(chatID int64) ([]models.User, error) {
 	return users, nil
 }
 
-func (r *UserRepository) UpdateBalanceForAllExcept(chatID, exceptTelegramID int64, delta int64) (int, error) {
+func (r *userRepository) UpdateBalanceForAllExcept(chatID, exceptTelegramID int64, delta int64) (int, error) {
 	result := r.db.Model(&models.User{}).
 		Where("chat_id = ? AND telegram_id != ?", chatID, exceptTelegramID).
 		Update("balance", gorm.Expr("balance + ?", delta))
@@ -155,7 +172,7 @@ func (r *UserRepository) UpdateBalanceForAllExcept(chatID, exceptTelegramID int6
 	return int(result.RowsAffected), nil
 }
 
-func (r *UserRepository) CountUsersExcept(chatID, exceptTelegramID int64) (int64, error) {
+func (r *userRepository) CountUsersExcept(chatID, exceptTelegramID int64) (int64, error) {
 	var count int64
 	result := r.db.Model(&models.User{}).
 		Where("chat_id = ? AND telegram_id != ?", chatID, exceptTelegramID).
@@ -166,7 +183,7 @@ func (r *UserRepository) CountUsersExcept(chatID, exceptTelegramID int64) (int64
 	return count, nil
 }
 
-func (r *UserRepository) GetDailyRemaining(chatID, telegramID int64) (int64, error) {
+func (r *userRepository) GetDailyRemaining(chatID, telegramID int64) (int64, error) {
 	var user models.User
 	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 	if result.Error != nil {
@@ -187,7 +204,7 @@ func (r *UserRepository) GetDailyRemaining(chatID, telegramID int64) (int64, err
 	return r.dailyLimit - user.DailyGiven, nil
 }
 
-func (r *UserRepository) AddDailyGiven(chatID, telegramID int64, amount int64) error {
+func (r *userRepository) AddDailyGiven(chatID, telegramID int64, amount int64) error {
 	var user models.User
 	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 	if result.Error != nil {
@@ -214,7 +231,7 @@ func (r *UserRepository) AddDailyGiven(chatID, telegramID int64, amount int64) e
 	return r.db.Save(&user).Error
 }
 
-func (r *UserRepository) CanBetToday(chatID, telegramID int64) (bool, error) {
+func (r *userRepository) CanBetToday(chatID, telegramID int64) (bool, error) {
 	var user models.User
 	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 	if result.Error != nil {
@@ -227,7 +244,7 @@ func (r *UserRepository) CanBetToday(chatID, telegramID int64) (bool, error) {
 	return today.After(lastBetDay), nil
 }
 
-func (r *UserRepository) ApplyBetResult(chatID, telegramID int64, won bool) error {
+func (r *userRepository) ApplyBetResult(chatID, telegramID int64, won bool) error {
 	var user models.User
 	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 	if result.Error != nil {
@@ -250,7 +267,7 @@ func (r *UserRepository) ApplyBetResult(chatID, telegramID int64, won bool) erro
 	return r.db.Save(&user).Error
 }
 
-func (r *UserRepository) AddDailyLimitByUsername(chatID int64, username string, delta int64) (oldRemaining, newRemaining int64, err error) {
+func (r *userRepository) AddDailyLimitByUsername(chatID int64, username string, delta int64) (oldRemaining, newRemaining int64, err error) {
 	var user models.User
 	result := r.db.Where("chat_id = ? AND username = ?", chatID, username).First(&user)
 	if result.Error != nil {

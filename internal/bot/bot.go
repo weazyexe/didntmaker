@@ -17,11 +17,11 @@ type Bot struct {
 	bot *tele.Bot
 }
 
-func New(cfg *config.Config, userRepo *repository.UserRepository) (*Bot, error) {
+func New(cfg *config.Config, userRepo repository.UserRepository) (*Bot, error) {
 	return NewWithLang(cfg, userRepo, i18n.Default())
 }
 
-func NewWithLang(cfg *config.Config, userRepo *repository.UserRepository, lang i18n.Lang) (*Bot, error) {
+func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, lang i18n.Lang) (*Bot, error) {
 	slog.Info("creating bot instance", "lang", lang)
 
 	pref := tele.Settings{

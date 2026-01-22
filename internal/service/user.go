@@ -11,19 +11,27 @@ type UserStats struct {
 	DailyLimit     int64
 }
 
-type UserService struct {
-	repo *repository.UserRepository
+type UserService interface {
+	GetOrCreate(chatID, telegramID int64, username, firstName string) (*models.User, error)
+	GetStats(chatID, telegramID int64, username, firstName string) (*UserStats, error)
+	GetLeaderboard(chatID int64) ([]models.User, error)
+	DailyLimit() int64
 }
 
-func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{repo: repo}
+// userService implements UserSvc interface
+type userService struct {
+	repo repository.UserRepository
 }
 
-func (s *UserService) GetOrCreate(chatID, telegramID int64, username, firstName string) (*models.User, error) {
+func NewUserService(repo repository.UserRepository) *userService {
+	return &userService{repo: repo}
+}
+
+func (s *userService) GetOrCreate(chatID, telegramID int64, username, firstName string) (*models.User, error) {
 	return s.repo.GetOrCreateUser(chatID, telegramID, username, firstName)
 }
 
-func (s *UserService) GetStats(chatID, telegramID int64, username, firstName string) (*UserStats, error) {
+func (s *userService) GetStats(chatID, telegramID int64, username, firstName string) (*UserStats, error) {
 	user, err := s.repo.GetOrCreateUser(chatID, telegramID, username, firstName)
 	if err != nil {
 		return nil, err
@@ -41,10 +49,10 @@ func (s *UserService) GetStats(chatID, telegramID int64, username, firstName str
 	}, nil
 }
 
-func (s *UserService) GetLeaderboard(chatID int64) ([]models.User, error) {
+func (s *userService) GetLeaderboard(chatID int64) ([]models.User, error) {
 	return s.repo.GetChatStats(chatID)
 }
 
-func (s *UserService) DailyLimit() int64 {
+func (s *userService) DailyLimit() int64 {
 	return s.repo.DailyLimit()
 }

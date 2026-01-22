@@ -10,15 +10,22 @@ type BetResult struct {
 	DailyLimit int64
 }
 
-type BetService struct {
-	repo *repository.UserRepository
+type BetService interface {
+	CanBet(chatID, telegramID int64) error
+	ApplyResult(chatID, telegramID int64, diceValue int) (*BetResult, error)
+	DailyLimit() int64
 }
 
-func NewBetService(repo *repository.UserRepository) *BetService {
-	return &BetService{repo: repo}
+// betService implements BetSvc interface
+type betService struct {
+	repo repository.UserRepository
 }
 
-func (s *BetService) CanBet(chatID, telegramID int64) error {
+func NewBetService(repo repository.UserRepository) *betService {
+	return &betService{repo: repo}
+}
+
+func (s *betService) CanBet(chatID, telegramID int64) error {
 	canBet, err := s.repo.CanBetToday(chatID, telegramID)
 	if err != nil {
 		return err
@@ -29,7 +36,7 @@ func (s *BetService) CanBet(chatID, telegramID int64) error {
 	return nil
 }
 
-func (s *BetService) ApplyResult(chatID, telegramID int64, diceValue int) (*BetResult, error) {
+func (s *betService) ApplyResult(chatID, telegramID int64, diceValue int) (*BetResult, error) {
 	won := diceValue >= 4
 
 	if err := s.repo.ApplyBetResult(chatID, telegramID, won); err != nil {
@@ -43,6 +50,6 @@ func (s *BetService) ApplyResult(chatID, telegramID int64, diceValue int) (*BetR
 	}, nil
 }
 
-func (s *BetService) DailyLimit() int64 {
+func (s *betService) DailyLimit() int64 {
 	return s.repo.DailyLimit()
 }
