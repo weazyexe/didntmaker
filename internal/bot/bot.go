@@ -52,3 +52,8 @@ func (b *Bot) Start() {
 	slog.Info("bot polling started")
 	b.bot.Start()
 }
+
+func (b *Bot) Stop() {
+	slog.Info("stopping bot")
+	b.bot.Stop()
+}

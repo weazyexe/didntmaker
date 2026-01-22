@@ -30,3 +30,12 @@ func Init(dbPath string) (*gorm.DB, error) {
 	slog.Info("database ready")
 	return db, nil
 }
+
+func Close(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	slog.Info("closing database connection")
+	return sqlDB.Close()
+}

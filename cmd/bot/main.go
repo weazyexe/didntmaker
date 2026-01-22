@@ -3,6 +3,8 @@ package main
 import (
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"weazyexe.dev/didntmaker/internal/bot"
 	"weazyexe.dev/didntmaker/internal/config"
@@ -40,6 +42,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("bot starting")
-	b.Start()
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		slog.Info("bot starting")
+		b.Start()
+	}()
+
+	<-sig
+	slog.Info("shutdown signal received")
+
+	b.Stop()
+
+	if err := database.Close(db); err != nil {
+		slog.Error("failed to close database", "error", err)
+	}
+
+	slog.Info("application stopped")
 }
