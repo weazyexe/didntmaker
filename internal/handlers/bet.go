@@ -42,7 +42,7 @@ func (h *Handlers) Bet(c tele.Context) error {
 	time.Sleep(4 * time.Second)
 
 	if result.Won {
-		return c.Send(fmt.Sprintf(h.msg.BetWin, result.DiceValue, result.DailyLimit))
+		return c.Send(fmt.Sprintf(h.msg.BetWin, result.DailyLimit))
 	}
-	return c.Send(fmt.Sprintf(h.msg.BetLose, result.DiceValue, result.DailyLimit))
+	return c.Send(fmt.Sprintf(h.msg.BetLose, result.DailyLimit))
 }

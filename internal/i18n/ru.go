@@ -3,7 +3,7 @@ package i18n
 func getRU() *Messages {
 	return &Messages{
 		// /start
-		Start: `это бот несправления. чем больше очков — тем больше ты не справился по жизни.
+		Start: `это бот несправления. чем меньше очков — тем больше ты не справился по жизни.
 
 реплай на сообщение с +N или -N — записать несправление
 /me — глянуть свой позор
@@ -21,8 +21,8 @@ func getRU() *Messages {
 
 реплай +N или -N
 реплаишь на сообщение человека и пишешь число. всё.
-+100 значит не справился на сотку
--50 значит немного справился (чё, бывает)
+-100 значит не справился на сотку
++50 значит немного справился (чё, бывает)
 
 реплай на бота +N или -N
 реплаишь на любое сообщение бота — баллы летят всем кроме тебя.
@@ -32,7 +32,7 @@ func getRU() *Messages {
 посмотреть насколько ты в жопе и сколько ещё можешь раздать другим
 
 /balances
-у кого сколько патронов осталось на сегодня
+у кого сколько очков несправления на раздачу осталось на сегодня
 
 /stats
 рейтинг несправляющихся. лёша не справляется по умолчанию
@@ -46,7 +46,6 @@ func getRU() *Messages {
 📏 правила
 
 • в день можешь раздать 1000 очков
-• за раз максимум ±1000
 • себе накинуть нельзя
 • в минус уходить НУЖНО
 • лимиты сбрасываются в полночь по UTC
@@ -58,19 +57,19 @@ func getRU() *Messages {
 
 		// /me
 		MeStats: "очки несправления: %d\n\nможешь раздать: %d из %d",
-		MeError: "сломалось что-то, хз",
+		MeError: "не справляюсь",
 
 		// /stats
 		StatsHeader:   "🏆 топ несправляющихся:\n\n",
 		StatsEmpty:    "пусто. напишите /me чтобы встать на учёт, лохи",
-		StatsError:    "не могу достать статистику, сорян",
+		StatsError:    "не могу достать статистику, не справляюсь",
 		StatsMedals:   []string{"🥇", "🥈", "🥉"},
 		StatsEntryFmt: "%s %s: %d\n",
 
 		// /balances
-		BalancesHeader: "🔫 патроны на сегодня:\n\n",
+		BalancesHeader: "🔫 лимит очков несправления на раздачу на сегодня:\n\n",
 		BalancesEmpty:  "никого нет. /me чтобы зарегаться",
-		BalancesError:  "не смог, сорян",
+		BalancesError:  "не справляюсь",
 		BalancesFull:   " (полный)",
 		BalancesEmpty_: " (пустой)",
 		BalancesEntry:  "%s: %d/%d%s\n",
@@ -78,27 +77,27 @@ func getRU() *Messages {
 		// /bet
 		BetNotRegistered: "хз кто ты, напиши /me",
 		BetAlreadyUsed:   "ты уже проигрывал сегодня, жадина. завтра приходи",
-		BetError:         "что-то сломалось",
-		BetDiceError:     "кубик сломался, лол",
-		BetResultError:   "не смог записать результат, повезло тебе",
-		BetWin:           "🎉 %d! ну ты везучий пидор, +%d к лимиту",
-		BetLose:          "💀 %d! АХАХАХАХ ЛОООХ, +%d очков несправления",
+		BetError:         "не справляюсь",
+		BetDiceError:     "кубик сломался, не справляюсь",
+		BetResultError:   "не смог записать результат, не справляюсь",
+		BetWin:           "хоть когда-то ты справился, +%d к лимиту",
+		BetLose:          "-%d очков несправления 🥀🥀🥀",
 
 		// /add (admin)
 		AddUsage:       "/add @username +/-N",
 		AddFormatError: "формат: /add @username +/-N",
 		AddNumberError: "число введи нормально",
 		AddNotFound:    "@%s не найден",
-		AddError:       "ошибка",
-		AddSuccess:     "🔧 @%s: %d → %d (%s%d)",
+		AddError:       "не справляюсь",
+		AddSuccess:     "право сильнейшего: @%s: %d → %d (%s%d)",
 
 		// Reply handler
 		ReplyLimitExceeded:   "максимум ±1000 за раз, не борзей",
 		ReplyUnknownTarget:   "не понял на кого ты реплаишь",
-		ReplySelfError:       "сам себе? серьёзно?",
+		ReplySelfError:       "сам себе? серьёзно? не справился",
 		ReplyNotEnough:       "не хватает. осталось %d из %d",
 		ReplyTargetNotFound:  "этот чел не зарегался. пусть напишет /me",
-		ReplyError:           "что-то сломалось",
+		ReplyError:           "не справляюсь",
 		ReplySuccessNegative: "%s не справился: %d",
 		ReplySuccessPositive: "%s справился: +%d",
 		ReplyNotRegistered:   "ты кто? напиши /me сначала",
@@ -106,7 +105,7 @@ func getRU() *Messages {
 		// Reply to all
 		ReplyAllNoUsers:    "некому раздавать, лол",
 		ReplyAllNotEnough:  "не хватает. надо %d, осталось %d",
-		ReplyAllError:      "что-то сломалось",
+		ReplyAllError:      "не справляюсь",
 		ReplyAllSuccessNeg: "все не справились: %d каждому",
 		ReplyAllSuccessPos: "все справились: +%d каждому",
 	}
