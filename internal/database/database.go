@@ -27,7 +27,6 @@ func Init(dbPath string) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	slog.Info("database ready")
 	return db, nil
 }
 
