@@ -64,6 +64,19 @@ type Messages struct {
 	ReplyAllSuccessNeg   string
 	ReplyAllSuccessPos   string
 	ReplyNotRegistered   string
+
+	// /stats_day, /stats_month, /stats_year commands
+	StatsPeriodHeader    string
+	StatsPeriodEmpty     string
+	StatsPeriodError     string
+	StatsPeriodPlusCount string
+	StatsPeriodMinusCount string
+	StatsPeriodRatio     string
+	StatsPeriodTotalPlus string
+	StatsPeriodTotalMinus string
+	StatsPeriodTopPlusers string
+	StatsPeriodTopMinusers string
+	StatsPeriodTopEntry  string
 }
 
 // Default returns the default language (Russian)

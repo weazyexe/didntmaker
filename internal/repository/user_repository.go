@@ -24,6 +24,8 @@ type UserRepository interface {
 	CanBetToday(chatID, telegramID int64) (bool, error)
 	ApplyBetResult(chatID, telegramID int64, won bool) error
 	AddDailyLimitByUsername(chatID int64, username string, delta int64) (oldRemaining, newRemaining int64, err error)
+	WithTx(tx *gorm.DB) UserRepository
+	DB() *gorm.DB
 }
 
 type userRepository struct {
@@ -38,6 +40,14 @@ func NewUserRepository(db *gorm.DB, dailyLimit int64) *userRepository {
 
 func (r *userRepository) DailyLimit() int64 {
 	return r.dailyLimit
+}
+
+func (r *userRepository) WithTx(tx *gorm.DB) UserRepository {
+	return &userRepository{db: tx, dailyLimit: r.dailyLimit}
+}
+
+func (r *userRepository) DB() *gorm.DB {
+	return r.db
 }
 
 func (r *userRepository) GetOrCreateUser(chatID, telegramID int64, username, firstName string) (*models.User, error) {
@@ -94,18 +104,22 @@ func (r *userRepository) GetUserByTelegramID(chatID, telegramID int64) (*models.
 
 func (r *userRepository) UpdateBalance(chatID, telegramID int64, delta int64) (*models.User, int64, error) {
 	var user models.User
-	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
-	if result.Error != nil {
-		return nil, 0, result.Error
+	if err := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user).Error; err != nil {
+		return nil, 0, err
 	}
 
 	oldBalance := user.Balance
-	user.Balance += delta
 
-	if err := r.db.Save(&user).Error; err != nil {
+	// Atomic update instead of read-modify-write
+	if err := r.db.Model(&models.User{}).
+		Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).
+		Update("balance", gorm.Expr("balance + ?", delta)).Error; err != nil {
 		slog.Error("failed to update balance", "chat_id", chatID, "telegram_id", telegramID, "error", err)
 		return nil, 0, err
 	}
+
+	// Re-fetch user to get updated balance
+	r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
 
 	slog.Info("balance updated",
 		"chat_id", chatID,
@@ -120,18 +134,22 @@ func (r *userRepository) UpdateBalance(chatID, telegramID int64, delta int64) (*
 
 func (r *userRepository) UpdateBalanceByUsername(chatID int64, username string, delta int64) (*models.User, int64, error) {
 	var user models.User
-	result := r.db.Where("chat_id = ? AND username = ?", chatID, username).First(&user)
-	if result.Error != nil {
-		return nil, 0, result.Error
+	if err := r.db.Where("chat_id = ? AND username = ?", chatID, username).First(&user).Error; err != nil {
+		return nil, 0, err
 	}
 
 	oldBalance := user.Balance
-	user.Balance += delta
 
-	if err := r.db.Save(&user).Error; err != nil {
+	// Atomic update instead of read-modify-write
+	if err := r.db.Model(&models.User{}).
+		Where("chat_id = ? AND username = ?", chatID, username).
+		Update("balance", gorm.Expr("balance + ?", delta)).Error; err != nil {
 		slog.Error("failed to update balance by username", "chat_id", chatID, "username", username, "error", err)
 		return nil, 0, err
 	}
+
+	// Re-fetch user to get updated balance
+	r.db.Where("chat_id = ? AND username = ?", chatID, username).First(&user)
 
 	slog.Info("balance updated by username",
 		"chat_id", chatID,
@@ -206,29 +224,39 @@ func (r *userRepository) GetDailyRemaining(chatID, telegramID int64) (int64, err
 
 func (r *userRepository) AddDailyGiven(chatID, telegramID int64, amount int64) error {
 	var user models.User
-	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
-	if result.Error != nil {
-		return result.Error
+	if err := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user).Error; err != nil {
+		return err
 	}
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	resetDay := user.DailyResetAt.Truncate(24 * time.Hour)
 
 	if today.After(resetDay) {
-		user.DailyGiven = amount
-		user.DailyResetAt = time.Now().UTC()
+		// Reset daily counter and set new amount
+		if err := r.db.Model(&models.User{}).
+			Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).
+			Updates(map[string]interface{}{
+				"daily_given":    amount,
+				"daily_reset_at": time.Now().UTC(),
+			}).Error; err != nil {
+			return err
+		}
 	} else {
-		user.DailyGiven += amount
+		// Atomic increment
+		if err := r.db.Model(&models.User{}).
+			Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).
+			Update("daily_given", gorm.Expr("daily_given + ?", amount)).Error; err != nil {
+			return err
+		}
 	}
 
 	slog.Debug("daily given updated",
 		"chat_id", chatID,
 		"telegram_id", telegramID,
 		"amount", amount,
-		"total_given", user.DailyGiven,
 	)
 
-	return r.db.Save(&user).Error
+	return nil
 }
 
 func (r *userRepository) CanBetToday(chatID, telegramID int64) (bool, error) {
@@ -245,26 +273,32 @@ func (r *userRepository) CanBetToday(chatID, telegramID int64) (bool, error) {
 }
 
 func (r *userRepository) ApplyBetResult(chatID, telegramID int64, won bool) error {
-	var user models.User
-	result := r.db.Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).First(&user)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	user.LastBetAt = time.Now().UTC()
+	now := time.Now().UTC()
 
 	if won {
-		user.DailyGiven -= r.dailyLimit
-		if user.DailyGiven < 0 {
-			user.DailyGiven = 0
+		// Atomic update: reduce daily_given (min 0) and set last_bet_at
+		if err := r.db.Exec(`
+			UPDATE users SET last_bet_at = ?,
+				daily_given = CASE WHEN daily_given >= ? THEN daily_given - ? ELSE 0 END
+			WHERE telegram_id = ? AND chat_id = ?`,
+			now, r.dailyLimit, r.dailyLimit, telegramID, chatID).Error; err != nil {
+			return err
 		}
 		slog.Info("bet won", "chat_id", chatID, "telegram_id", telegramID, "daily_limit_bonus", r.dailyLimit)
 	} else {
-		user.Balance -= r.dailyLimit
-		slog.Info("bet lost", "chat_id", chatID, "telegram_id", telegramID, "balance_penalty", r.dailyLimit, "new_balance", user.Balance)
+		// Atomic update: reduce balance and set last_bet_at
+		if err := r.db.Model(&models.User{}).
+			Where("telegram_id = ? AND chat_id = ?", telegramID, chatID).
+			Updates(map[string]interface{}{
+				"last_bet_at": now,
+				"balance":     gorm.Expr("balance - ?", r.dailyLimit),
+			}).Error; err != nil {
+			return err
+		}
+		slog.Info("bet lost", "chat_id", chatID, "telegram_id", telegramID, "balance_penalty", r.dailyLimit)
 	}
 
-	return r.db.Save(&user).Error
+	return nil
 }
 
 func (r *userRepository) AddDailyLimitByUsername(chatID int64, username string, delta int64) (oldRemaining, newRemaining int64, err error) {

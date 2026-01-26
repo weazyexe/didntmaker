@@ -35,8 +35,9 @@ func main() {
 	slog.Info("database initialized")
 
 	userRepo := repository.NewUserRepository(db, cfg.DailyLimit)
+	txRepo := repository.NewTransactionRepository(db)
 
-	b, err := bot.New(cfg, userRepo)
+	b, err := bot.New(cfg, userRepo, txRepo)
 	if err != nil {
 		slog.Error("failed to create bot", "error", err)
 		os.Exit(1)

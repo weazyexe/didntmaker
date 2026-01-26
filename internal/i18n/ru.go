@@ -108,5 +108,18 @@ func getRU() *Messages {
 		ReplyAllError:      "не справляюсь",
 		ReplyAllSuccessNeg: "все не справились: %d каждому",
 		ReplyAllSuccessPos: "все справились: +%d каждому",
+
+		// /stats_day, /stats_month, /stats_year
+		StatsPeriodHeader:     "📊 статистика за %s:\n\n",
+		StatsPeriodEmpty:      "нет данных за этот период",
+		StatsPeriodError:      "не справляюсь",
+		StatsPeriodPlusCount:  "получил плюсов: %d раз\n",
+		StatsPeriodMinusCount: "получил минусов: %d раз\n",
+		StatsPeriodRatio:      "соотношение: %.0f%% / %.0f%%\n",
+		StatsPeriodTotalPlus:  "всего плюсов: +%d\n",
+		StatsPeriodTotalMinus: "всего минусов: %d\n",
+		StatsPeriodTopPlusers: "\n🔼 больше всего плюсуют:\n",
+		StatsPeriodTopMinusers: "\n🔽 больше всего минусуют:\n",
+		StatsPeriodTopEntry:   "  %s: %d раз (всего %+d)\n",
 	}
 }

@@ -4,54 +4,33 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
 	"weazyexe.dev/didntmaker/internal/models"
 	"weazyexe.dev/didntmaker/internal/repository"
 )
 
 const maxTransactionAmount int64 = 1000
 
-type TransferResult struct {
-	Target     *models.User
-	Delta      int64
-	OldBalance int64
-}
-
-type TransferAllResult struct {
-	Delta       int64
-	AffectedCnt int
-	TotalCost   int64
-}
-
-type DailyBalance struct {
-	User       *models.User
-	Remaining  int64
-	DailyLimit int64
-}
-
-type AdjustResult struct {
-	OldRemaining int64
-	NewRemaining int64
-}
-
 type BalanceService interface {
-	Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*TransferResult, error)
-	TransferToAll(chatID, senderID int64, delta int64) (*TransferAllResult, error)
-	GetDailyBalances(chatID int64) ([]DailyBalance, error)
-	AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*AdjustResult, error)
+	Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*models.TransferResult, error)
+	TransferToAll(chatID, senderID int64, delta int64) (*models.TransferAllResult, error)
+	GetDailyBalances(chatID int64) ([]models.DailyBalance, error)
+	AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*models.AdjustResult, error)
 	DailyLimit() int64
 }
 
 // balanceService implements BalanceSvc interface
 type balanceService struct {
 	repo       repository.UserRepository
+	txService  TransactionService
 	superAdmin string
 }
 
-func NewBalanceService(repo repository.UserRepository, superAdmin string) *balanceService {
-	return &balanceService{repo: repo, superAdmin: superAdmin}
+func NewBalanceService(repo repository.UserRepository, txService TransactionService, superAdmin string) *balanceService {
+	return &balanceService{repo: repo, txService: txService, superAdmin: superAdmin}
 }
 
-func (s *balanceService) Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*TransferResult, error) {
+func (s *balanceService) Transfer(chatID, senderID, targetID int64, targetUsername string, delta int64) (*models.TransferResult, error) {
 	if senderID == targetID {
 		return nil, ErrSelfTransfer
 	}
@@ -71,26 +50,43 @@ func (s *balanceService) Transfer(chatID, senderID, targetID int64, targetUserna
 		return nil, ErrInsufficientLimit
 	}
 
-	user, oldBalance, err := s.repo.UpdateBalance(chatID, targetID, delta)
-	if err != nil {
-		if strings.Contains(err.Error(), "record not found") && targetUsername != "" {
-			user, oldBalance, err = s.repo.UpdateBalanceByUsername(chatID, targetUsername, delta)
-		}
+	var result *models.TransferResult
+	err = s.repo.DB().Transaction(func(tx *gorm.DB) error {
+		txRepo := s.repo.WithTx(tx)
+		txSvc := s.txService.WithTx(tx)
+
+		user, oldBalance, err := txRepo.UpdateBalance(chatID, targetID, delta)
 		if err != nil {
-			return nil, ErrUserNotFound
+			if strings.Contains(err.Error(), "record not found") && targetUsername != "" {
+				user, oldBalance, err = txRepo.UpdateBalanceByUsername(chatID, targetUsername, delta)
+			}
+			if err != nil {
+				return ErrUserNotFound
+			}
 		}
+
+		if err := txRepo.AddDailyGiven(chatID, senderID, absDelta); err != nil {
+			return err
+		}
+
+		txSvc.LogTransfer(chatID, senderID, user.TelegramID, delta)
+
+		result = &models.TransferResult{
+			Target:     user,
+			Delta:      delta,
+			OldBalance: oldBalance,
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	_ = s.repo.AddDailyGiven(chatID, senderID, absDelta)
-
-	return &TransferResult{
-		Target:     user,
-		Delta:      delta,
-		OldBalance: oldBalance,
-	}, nil
+	return result, nil
 }
 
-func (s *balanceService) TransferToAll(chatID, senderID int64, delta int64) (*TransferAllResult, error) {
+func (s *balanceService) TransferToAll(chatID, senderID int64, delta int64) (*models.TransferAllResult, error) {
 	if delta > maxTransactionAmount || delta < -maxTransactionAmount {
 		return nil, ErrTransactionLimit
 	}
@@ -112,21 +108,38 @@ func (s *balanceService) TransferToAll(chatID, senderID int64, delta int64) (*Tr
 		return nil, ErrInsufficientLimit
 	}
 
-	affected, err := s.repo.UpdateBalanceForAllExcept(chatID, senderID, delta)
+	var result *models.TransferAllResult
+	err = s.repo.DB().Transaction(func(tx *gorm.DB) error {
+		txRepo := s.repo.WithTx(tx)
+		txSvc := s.txService.WithTx(tx)
+
+		affected, err := txRepo.UpdateBalanceForAllExcept(chatID, senderID, delta)
+		if err != nil {
+			return err
+		}
+
+		if err := txRepo.AddDailyGiven(chatID, senderID, totalCost); err != nil {
+			return err
+		}
+
+		txSvc.LogTransferAll(chatID, senderID, delta, affected)
+
+		result = &models.TransferAllResult{
+			Delta:       delta,
+			AffectedCnt: affected,
+			TotalCost:   totalCost,
+		}
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	_ = s.repo.AddDailyGiven(chatID, senderID, totalCost)
-
-	return &TransferAllResult{
-		Delta:       delta,
-		AffectedCnt: affected,
-		TotalCost:   totalCost,
-	}, nil
+	return result, nil
 }
 
-func (s *balanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) {
+func (s *balanceService) GetDailyBalances(chatID int64) ([]models.DailyBalance, error) {
 	users, err := s.repo.GetChatStats(chatID)
 	if err != nil {
 		return nil, err
@@ -135,7 +148,7 @@ func (s *balanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
 	dailyLimit := s.repo.DailyLimit()
 
-	result := make([]DailyBalance, 0, len(users))
+	result := make([]models.DailyBalance, 0, len(users))
 	for _, user := range users {
 		var remaining int64
 		resetDay := user.DailyResetAt.Truncate(24 * time.Hour)
@@ -146,7 +159,7 @@ func (s *balanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) 
 		}
 
 		u := user // copy to avoid pointer issues
-		result = append(result, DailyBalance{
+		result = append(result, models.DailyBalance{
 			User:       &u,
 			Remaining:  remaining,
 			DailyLimit: dailyLimit,
@@ -156,7 +169,7 @@ func (s *balanceService) GetDailyBalances(chatID int64) ([]DailyBalance, error) 
 	return result, nil
 }
 
-func (s *balanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*AdjustResult, error) {
+func (s *balanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*models.AdjustResult, error) {
 	if s.superAdmin == "" || !strings.EqualFold(adminUsername, s.superAdmin) {
 		return nil, ErrNotAuthorized
 	}
@@ -169,7 +182,7 @@ func (s *balanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUse
 		return nil, err
 	}
 
-	return &AdjustResult{
+	return &models.AdjustResult{
 		OldRemaining: oldRemaining,
 		NewRemaining: newRemaining,
 	}, nil

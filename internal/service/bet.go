@@ -1,6 +1,7 @@
 package service
 
 import (
+	"gorm.io/gorm"
 	"weazyexe.dev/didntmaker/internal/repository"
 )
 
@@ -16,13 +17,13 @@ type BetService interface {
 	DailyLimit() int64
 }
 
-// betService implements BetSvc interface
 type betService struct {
-	repo repository.UserRepository
+	repo      repository.UserRepository
+	txService TransactionService
 }
 
-func NewBetService(repo repository.UserRepository) *betService {
-	return &betService{repo: repo}
+func NewBetService(repo repository.UserRepository, txService TransactionService) *betService {
+	return &betService{repo: repo, txService: txService}
 }
 
 func (s *betService) CanBet(chatID, telegramID int64) error {
@@ -38,15 +39,33 @@ func (s *betService) CanBet(chatID, telegramID int64) error {
 
 func (s *betService) ApplyResult(chatID, telegramID int64, diceValue int) (*BetResult, error) {
 	won := diceValue >= 4
+	dailyLimit := s.repo.DailyLimit()
 
-	if err := s.repo.ApplyBetResult(chatID, telegramID, won); err != nil {
+	amount := -dailyLimit
+	if won {
+		amount = dailyLimit
+	}
+
+	err := s.repo.DB().Transaction(func(tx *gorm.DB) error {
+		txRepo := s.repo.WithTx(tx)
+		txSvc := s.txService.WithTx(tx)
+
+		if err := txRepo.ApplyBetResult(chatID, telegramID, won); err != nil {
+			return err
+		}
+
+		txSvc.LogBetResult(chatID, telegramID, won, amount, diceValue)
+		return nil
+	})
+
+	if err != nil {
 		return nil, err
 	}
 
 	return &BetResult{
 		DiceValue:  diceValue,
 		Won:        won,
-		DailyLimit: s.repo.DailyLimit(),
+		DailyLimit: dailyLimit,
 	}, nil
 }
 

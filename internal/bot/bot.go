@@ -17,11 +17,11 @@ type Bot struct {
 	bot *tele.Bot
 }
 
-func New(cfg *config.Config, userRepo repository.UserRepository) (*Bot, error) {
-	return NewWithLang(cfg, userRepo, i18n.Default())
+func New(cfg *config.Config, userRepo repository.UserRepository, txRepo repository.TransactionRepository) (*Bot, error) {
+	return NewWithLang(cfg, userRepo, txRepo, i18n.Default())
 }
 
-func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, lang i18n.Lang) (*Bot, error) {
+func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, txRepo repository.TransactionRepository, lang i18n.Lang) (*Bot, error) {
 	slog.Info("creating bot instance", "lang", lang)
 
 	pref := tele.Settings{
@@ -36,12 +36,13 @@ func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, lang i1
 	}
 
 	// Create services
+	txSvc := service.NewTransactionService(txRepo)
 	userSvc := service.NewUserService(userRepo)
-	balanceSvc := service.NewBalanceService(userRepo, cfg.SuperAdmin)
-	betSvc := service.NewBetService(userRepo)
+	balanceSvc := service.NewBalanceService(userRepo, txSvc, cfg.SuperAdmin)
+	betSvc := service.NewBetService(userRepo, txSvc)
 
 	// Create and register handlers
-	h := handlers.New(b, userSvc, balanceSvc, betSvc, i18n.Get(lang))
+	h := handlers.New(b, userSvc, balanceSvc, betSvc, txSvc, i18n.Get(lang))
 	h.Register()
 
 	slog.Info("bot created", "username", b.Me.Username)

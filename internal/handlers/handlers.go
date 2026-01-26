@@ -13,11 +13,12 @@ import (
 var deltaRe = regexp.MustCompile(`^([+-]?\d+)$`)
 
 type Handlers struct {
-	bot            *tele.Bot
-	userService    service.UserService
-	balanceService service.BalanceService
-	betService     service.BetService
-	msg            *i18n.Messages
+	bot                *tele.Bot
+	userService        service.UserService
+	balanceService     service.BalanceService
+	betService         service.BetService
+	transactionService service.TransactionService
+	msg                *i18n.Messages
 }
 
 func New(
@@ -25,14 +26,16 @@ func New(
 	userSvc service.UserService,
 	balanceSvc service.BalanceService,
 	betSvc service.BetService,
+	txSvc service.TransactionService,
 	msg *i18n.Messages,
 ) *Handlers {
 	return &Handlers{
-		bot:            bot,
-		userService:    userSvc,
-		balanceService: balanceSvc,
-		betService:     betSvc,
-		msg:            msg,
+		bot:                bot,
+		userService:        userSvc,
+		balanceService:     balanceSvc,
+		betService:         betSvc,
+		transactionService: txSvc,
+		msg:                msg,
 	}
 }
 
@@ -44,6 +47,9 @@ func (h *Handlers) Register() {
 	h.bot.Handle("/balances", h.Balances)
 	h.bot.Handle("/bet", h.Bet)
 	h.bot.Handle("/add", h.Add)
+	h.bot.Handle("/stats_day", h.StatsDay)
+	h.bot.Handle("/stats_month", h.StatsMonth)
+	h.bot.Handle("/stats_year", h.StatsYear)
 	h.bot.Handle(tele.OnText, h.Reply)
 
 	slog.Info("handlers registered")
