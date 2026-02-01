@@ -51,9 +51,6 @@ func (h *Handlers) Register() {
 	h.bot.Handle("/balances", h.Balances)
 	h.bot.Handle("/bet", h.Bet)
 	h.bot.Handle("/add", h.Add)
-	h.bot.Handle("/stats_day", h.StatsDay)
-	h.bot.Handle("/stats_month", h.StatsMonth)
-	h.bot.Handle("/stats_year", h.StatsYear)
 	if h.discordBindingRepo != nil {
 		h.bot.Handle("/discord_bind", h.DiscordBind)
 		h.bot.Handle("/discord_unbind", h.DiscordUnbind)
