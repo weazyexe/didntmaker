@@ -22,7 +22,7 @@ func Init(dbPath string) (*gorm.DB, error) {
 	}
 
 	slog.Info("running migrations")
-	if err := db.AutoMigrate(&models.User{}, &models.Transaction{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.Transaction{}, &models.DiscordBinding{}); err != nil {
 		slog.Error("failed to run migrations", "error", err)
 		return nil, err
 	}

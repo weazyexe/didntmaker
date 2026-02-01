@@ -77,6 +77,20 @@ type Messages struct {
 	StatsPeriodTopPlusers string
 	StatsPeriodTopMinusers string
 	StatsPeriodTopEntry  string
+
+	// Discord voice events
+	DiscordVoiceJoin  string
+	DiscordVoiceLeave string
+
+	// Discord bind commands
+	DiscordBindUsage        string
+	DiscordBindInvalidID    string
+	DiscordBindAlreadyBound string
+	DiscordBindError        string
+	DiscordBindSuccess      string
+	DiscordUnbindUsage      string
+	DiscordUnbindError      string
+	DiscordUnbindSuccess    string
 }
 
 // Default returns the default language (Russian)

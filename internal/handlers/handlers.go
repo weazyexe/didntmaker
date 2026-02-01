@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	"weazyexe.dev/didntmaker/internal/i18n"
+	"weazyexe.dev/didntmaker/internal/repository"
 	"weazyexe.dev/didntmaker/internal/service"
 
 	tele "gopkg.in/telebot.v3"
@@ -18,6 +19,7 @@ type Handlers struct {
 	balanceService     service.BalanceService
 	betService         service.BetService
 	transactionService service.TransactionService
+	discordBindingRepo repository.DiscordBindingRepository
 	msg                *i18n.Messages
 }
 
@@ -27,6 +29,7 @@ func New(
 	balanceSvc service.BalanceService,
 	betSvc service.BetService,
 	txSvc service.TransactionService,
+	discordBindingRepo repository.DiscordBindingRepository,
 	msg *i18n.Messages,
 ) *Handlers {
 	return &Handlers{
@@ -35,6 +38,7 @@ func New(
 		balanceService:     balanceSvc,
 		betService:         betSvc,
 		transactionService: txSvc,
+		discordBindingRepo: discordBindingRepo,
 		msg:                msg,
 	}
 }
@@ -50,6 +54,11 @@ func (h *Handlers) Register() {
 	h.bot.Handle("/stats_day", h.StatsDay)
 	h.bot.Handle("/stats_month", h.StatsMonth)
 	h.bot.Handle("/stats_year", h.StatsYear)
+	if h.discordBindingRepo != nil {
+		h.bot.Handle("/discord_bind", h.DiscordBind)
+		h.bot.Handle("/discord_unbind", h.DiscordUnbind)
+	}
+
 	h.bot.Handle(tele.OnText, h.Reply)
 
 	slog.Info("handlers registered")

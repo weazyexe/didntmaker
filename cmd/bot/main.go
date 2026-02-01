@@ -37,7 +37,13 @@ func main() {
 	userRepo := repository.NewUserRepository(db, cfg.DailyLimit)
 	txRepo := repository.NewTransactionRepository(db)
 
-	b, err := bot.New(cfg, userRepo, txRepo)
+	var discordBindingRepo repository.DiscordBindingRepository
+	if cfg.DiscordToken != "" {
+		discordBindingRepo = repository.NewDiscordBindingRepository(db)
+		slog.Info("discord integration enabled")
+	}
+
+	b, err := bot.New(cfg, userRepo, txRepo, discordBindingRepo)
 	if err != nil {
 		slog.Error("failed to create bot", "error", err)
 		os.Exit(1)

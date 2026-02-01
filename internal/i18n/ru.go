@@ -50,6 +50,14 @@ func getRU() *Messages {
 • в минус уходить НУЖНО
 • лимиты сбрасываются в полночь по UTC
 
+🔊 discord
+бот умеет кидать уведомления когда кто-то заходит/выходит из войса на discord сервере
+
+/discord_bind <guild_id> — привязать discord сервер к этому чату
+/discord_unbind <guild_id> — отвязать
+
+guild_id — это ID сервера в discord. включи Developer Mode (настройки → расширенные), потом ПКМ по серверу → Copy Server ID
+
 💡 пример
 [реплай на сообщение леши]
 -1000
@@ -121,5 +129,24 @@ func getRU() *Messages {
 		StatsPeriodTopPlusers: "\n🔼 больше всего плюсуют:\n",
 		StatsPeriodTopMinusers: "\n🔽 больше всего минусуют:\n",
 		StatsPeriodTopEntry:   "  %s: %d раз (всего %+d)\n",
+
+		// Discord voice events
+		DiscordVoiceJoin:  "%s присоединился к каналу #%s",
+		DiscordVoiceLeave: "%s покинул канал #%s",
+
+		// Discord bind commands
+		DiscordBindUsage: `формат: /discord_bind <guild_id>
+
+guild_id — это ID сервера в discord. чтобы получить:
+1. открой настройки discord → расширенные → включи Developer Mode
+2. ПКМ по серверу → Copy Server ID
+3. /discord_bind <скопированный_id>`,
+		DiscordBindInvalidID:    "guild_id должен быть числом",
+		DiscordBindAlreadyBound: "этот сервер уже привязан к этому чату",
+		DiscordBindError:        "не справляюсь",
+		DiscordBindSuccess:      "discord сервер %s привязан к этому чату",
+		DiscordUnbindUsage:      "формат: /discord_unbind <guild_id>",
+		DiscordUnbindError:      "не справляюсь",
+		DiscordUnbindSuccess:    "discord сервер %s отвязан от этого чата",
 	}
 }
