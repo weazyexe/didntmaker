@@ -23,10 +23,10 @@ type BalanceService interface {
 type balanceService struct {
 	repo       repository.UserRepository
 	txService  TransactionService
-	superAdmin string
+	superAdmin []string
 }
 
-func NewBalanceService(repo repository.UserRepository, txService TransactionService, superAdmin string) *balanceService {
+func NewBalanceService(repo repository.UserRepository, txService TransactionService, superAdmin []string) *balanceService {
 	return &balanceService{repo: repo, txService: txService, superAdmin: superAdmin}
 }
 
@@ -170,7 +170,7 @@ func (s *balanceService) GetDailyBalances(chatID int64) ([]models.DailyBalance, 
 }
 
 func (s *balanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUsername string, delta int64) (*models.AdjustResult, error) {
-	if s.superAdmin == "" || !strings.EqualFold(adminUsername, s.superAdmin) {
+	if !s.isSuperAdmin(adminUsername) {
 		return nil, ErrNotAuthorized
 	}
 
@@ -186,6 +186,15 @@ func (s *balanceService) AdjustDailyLimit(chatID int64, adminUsername, targetUse
 		OldRemaining: oldRemaining,
 		NewRemaining: newRemaining,
 	}, nil
+}
+
+func (s *balanceService) isSuperAdmin(username string) bool {
+	for _, admin := range s.superAdmin {
+		if strings.EqualFold(username, admin) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *balanceService) DailyLimit() int64 {
