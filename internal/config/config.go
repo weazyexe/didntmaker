@@ -7,11 +7,11 @@ import (
 )
 
 type Config struct {
-	BotToken   string `env:"BOT_TOKEN" env-required:"true"`
-	SuperAdmin string `env:"SUPER_ADMIN" env-default:""`
-	DailyLimit int64  `env:"DAILY_LIMIT" env-default:"1000"`
-	DBPath       string `env:"DB_PATH" env-default:"didntmaker.db"`
-	DiscordToken string `env:"DISCORD_TOKEN" env-default:""`
+	BotToken     string   `env:"BOT_TOKEN" env-required:"true"`
+	SuperAdmin   []string `env:"SUPER_ADMIN" env-default:""`
+	DailyLimit   int64    `env:"DAILY_LIMIT" env-default:"1000"`
+	DBPath       string   `env:"DB_PATH" env-default:"didntmaker.db"`
+	DiscordToken string   `env:"DISCORD_TOKEN" env-default:""`
 }
 
 func Load() (*Config, error) {
