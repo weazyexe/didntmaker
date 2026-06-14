@@ -23,5 +23,10 @@ func (h *Handlers) Me(c tele.Context) error {
 
 	msg := fmt.Sprintf(h.msg.MeStats, stats.Score, stats.DailyRemaining, stats.DailyLimit) +
 		fmt.Sprintf(h.msg.MeBets, stats.Won, stats.Lost)
+	if stats.BetAvailable {
+		msg += h.msg.MeBetReady
+	} else {
+		msg += h.msg.MeBetUsed
+	}
 	return c.Send(msg)
 }

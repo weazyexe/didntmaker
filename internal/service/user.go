@@ -49,6 +49,11 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		return nil, err
 	}
 
+	betUsed, err := s.postingsRepository.HasBetSince(ctx, chatID, telegramID, startOfUTCDay())
+	if err != nil {
+		return nil, err
+	}
+
 	return &domain.UserStats{
 		User:           user,
 		Score:          score,
@@ -56,6 +61,7 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		DailyLimit:     s.dailyLimit,
 		Won:            won,
 		Lost:           lost,
+		BetAvailable:   !betUsed,
 	}, nil
 }
 

@@ -7,6 +7,7 @@ type UserStats struct {
 	DailyLimit     int64
 	Won            int64
 	Lost           int64
+	BetAvailable   bool
 }
 
 type LeaderboardEntry struct {

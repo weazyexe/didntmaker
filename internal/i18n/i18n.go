@@ -14,9 +14,11 @@ type Messages struct {
 	Help  string
 
 	// /me command
-	MeStats string
-	MeBets  string
-	MeError string
+	MeStats    string
+	MeBets     string
+	MeBetReady string
+	MeBetUsed  string
+	MeError    string
 
 	// /bet_stats command
 	BetStatsHeader string
