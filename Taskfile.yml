@@ -1,0 +1,63 @@
+version: "3"
+
+env:
+  DB_PATH: '{{.DB_PATH | default "didntmaker.db"}}'
+
+vars:
+  MIGRATIONS_DIR: db/migrations
+
+tasks:
+  default:
+    desc: Format, generate and build (quick pre-commit check)
+    cmds:
+      - task: fmt
+      - task: generate
+      - task: build
+
+  tools:
+    desc: Install dev tools (sqlc, goose)
+    cmds:
+      - go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+      - go install github.com/pressly/goose/v3/cmd/goose@latest
+
+  generate:
+    desc: Generate type-safe DB code from db/queries via sqlc
+    aliases: [sqlc]
+    cmds:
+      - sqlc generate
+
+  migrate:
+    desc: Apply embedded migrations to $DB_PATH
+    aliases: [migrate:up]
+    cmds:
+      - go run ./cmd/migrate
+
+  migrate:create:
+    desc: "Scaffold a new SQL migration — usage: task migrate:create -- <name>"
+    cmds:
+      - goose -dir {{.MIGRATIONS_DIR}} create {{.CLI_ARGS}} sql
+
+  build:
+    desc: Build the bot binary
+    cmds:
+      - go build -o bin/bot ./cmd/bot
+
+  run:
+    desc: Run the bot
+    cmds:
+      - go run ./cmd/bot
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test ./...
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  tidy:
+    desc: Tidy go modules
+    cmds:
+      - go mod tidy

@@ -1,17 +1,17 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 
 	tele "gopkg.in/telebot.v3"
-	"weazyexe.dev/didntmaker/internal/models"
 )
 
 var guildIDRe = regexp.MustCompile(`^\d+$`)
 
 func (h *Handlers) DiscordBind(c tele.Context) error {
-	logCommand(c, "/discord_bind")
+	defer logCommand(c, "/discord_bind")()
 
 	guildID := c.Message().Payload
 	if guildID == "" {
@@ -24,7 +24,7 @@ func (h *Handlers) DiscordBind(c tele.Context) error {
 
 	chatID := c.Chat().ID
 
-	exists, err := h.discordBindingRepo.Exists(chatID, guildID)
+	exists, err := h.discordBindingRepo.Exists(context.Background(), chatID, guildID)
 	if err != nil {
 		return c.Send(h.msg.DiscordBindError)
 	}
@@ -32,11 +32,7 @@ func (h *Handlers) DiscordBind(c tele.Context) error {
 		return c.Send(h.msg.DiscordBindAlreadyBound)
 	}
 
-	binding := &models.DiscordBinding{
-		ChatID:  chatID,
-		GuildID: guildID,
-	}
-	if err := h.discordBindingRepo.Create(binding); err != nil {
+	if err := h.discordBindingRepo.Create(context.Background(), chatID, guildID); err != nil {
 		return c.Send(h.msg.DiscordBindError)
 	}
 
@@ -44,7 +40,7 @@ func (h *Handlers) DiscordBind(c tele.Context) error {
 }
 
 func (h *Handlers) DiscordUnbind(c tele.Context) error {
-	logCommand(c, "/discord_unbind")
+	defer logCommand(c, "/discord_unbind")()
 
 	guildID := c.Message().Payload
 	if guildID == "" {
@@ -53,7 +49,7 @@ func (h *Handlers) DiscordUnbind(c tele.Context) error {
 
 	chatID := c.Chat().ID
 
-	if err := h.discordBindingRepo.Delete(chatID, guildID); err != nil {
+	if err := h.discordBindingRepo.Delete(context.Background(), chatID, guildID); err != nil {
 		return c.Send(h.msg.DiscordUnbindError)
 	}
 

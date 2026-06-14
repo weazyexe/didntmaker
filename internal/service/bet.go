@@ -1,74 +1,74 @@
 package service
 
 import (
-	"gorm.io/gorm"
+	"context"
+	"fmt"
+	"log/slog"
+
+	"weazyexe.dev/didntmaker/internal/domain"
 	"weazyexe.dev/didntmaker/internal/repository"
 )
 
-type BetResult struct {
-	DiceValue  int
-	Won        bool
-	DailyLimit int64
-}
-
 type BetService interface {
-	CanBet(chatID, telegramID int64) error
-	ApplyResult(chatID, telegramID int64, diceValue int) (*BetResult, error)
+	CanBet(ctx context.Context, chatID, telegramID int64) error
+	ApplyResult(ctx context.Context, chatID, telegramID int64, diceValue int) (*domain.BetResult, error)
 	DailyLimit() int64
 }
 
 type betService struct {
-	repo      repository.UserRepository
-	txService TransactionService
+	postingRepository repository.PostingRepository
+	dailyLimit        int64
 }
 
-func NewBetService(repo repository.UserRepository, txService TransactionService) *betService {
-	return &betService{repo: repo, txService: txService}
+func NewBetService(postingRepository repository.PostingRepository, dailyLimit int64) *betService {
+	return &betService{postingRepository: postingRepository, dailyLimit: dailyLimit}
 }
 
-func (s *betService) CanBet(chatID, telegramID int64) error {
-	canBet, err := s.repo.CanBetToday(chatID, telegramID)
+func (s *betService) CanBet(ctx context.Context, chatID, telegramID int64) error {
+	used, err := s.postingRepository.HasBetSince(ctx, chatID, telegramID, startOfUTCDay())
 	if err != nil {
 		return err
 	}
-	if !canBet {
-		return ErrBetAlreadyUsed
+	if used {
+		return domain.ErrBetAlreadyUsed
 	}
 	return nil
 }
 
-func (s *betService) ApplyResult(chatID, telegramID int64, diceValue int) (*BetResult, error) {
+func (s *betService) ApplyResult(ctx context.Context, chatID, telegramID int64, diceValue int) (*domain.BetResult, error) {
 	won := diceValue >= 4
-	dailyLimit := s.repo.DailyLimit()
 
-	amount := -dailyLimit
+	// Win adds +limit to daily allowance (negative spend, stacks); loss deducts score.
+	posting := domain.Posting{
+		ChatID:       chatID,
+		AccountID:    telegramID,
+		Amount:       -s.dailyLimit,
+		OpID:         newOpID(),
+		Counterparty: 0,
+		Metadata:     fmt.Sprintf("dice:%d", diceValue),
+		CreatedAt:    nowUTC(),
+	}
 	if won {
-		amount = dailyLimit
+		posting.Book = domain.BookAllowance
+		posting.OpType = domain.OpBetWin
+	} else {
+		posting.Book = domain.BookScore
+		posting.OpType = domain.OpBetLose
 	}
 
-	err := s.repo.DB().Transaction(func(tx *gorm.DB) error {
-		txRepo := s.repo.WithTx(tx)
-		txSvc := s.txService.WithTx(tx)
-
-		if err := txRepo.ApplyBetResult(chatID, telegramID, won); err != nil {
-			return err
-		}
-
-		txSvc.LogBetResult(chatID, telegramID, won, amount, diceValue)
-		return nil
-	})
-
-	if err != nil {
+	if err := s.postingRepository.InsertPostings(ctx, []domain.Posting{posting}); err != nil {
+		slog.Error("bet failed", "chat_id", chatID, "player", telegramID, "error", err)
 		return nil, err
 	}
 
-	return &BetResult{
+	slog.Info("bet", "chat_id", chatID, "player", telegramID, "won", won, "dice", diceValue)
+	return &domain.BetResult{
 		DiceValue:  diceValue,
 		Won:        won,
-		DailyLimit: dailyLimit,
+		DailyLimit: s.dailyLimit,
 	}, nil
 }
 
 func (s *betService) DailyLimit() int64 {
-	return s.repo.DailyLimit()
+	return s.dailyLimit
 }

@@ -1,18 +1,19 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
 
-	"weazyexe.dev/didntmaker/internal/service"
+	"weazyexe.dev/didntmaker/internal/domain"
 
 	tele "gopkg.in/telebot.v3"
 )
 
 func (h *Handlers) Add(c tele.Context) error {
-	logCommand(c, "/add")
+	defer logCommand(c, "/add")()
 
 	args := c.Message().Payload
 	if args == "" {
@@ -33,16 +34,17 @@ func (h *Handlers) Add(c tele.Context) error {
 	}
 
 	result, err := h.balanceService.AdjustDailyLimit(
+		context.Background(),
 		c.Chat().ID,
 		c.Sender().Username,
 		username,
 		delta,
 	)
 	if err != nil {
-		if errors.Is(err, service.ErrNotAuthorized) {
+		if errors.Is(err, domain.ErrNotAuthorized) {
 			return nil // Silently ignore
 		}
-		if errors.Is(err, service.ErrUserNotFound) {
+		if errors.Is(err, domain.ErrUserNotFound) {
 			return c.Send(fmt.Sprintf(h.msg.AddNotFound, username))
 		}
 		return c.Send(h.msg.AddError)

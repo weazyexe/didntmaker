@@ -1,58 +1,61 @@
 package service
 
 import (
-	"weazyexe.dev/didntmaker/internal/models"
+	"context"
+
+	"weazyexe.dev/didntmaker/internal/domain"
 	"weazyexe.dev/didntmaker/internal/repository"
 )
 
-type UserStats struct {
-	User           *models.User
-	DailyRemaining int64
-	DailyLimit     int64
-}
-
 type UserService interface {
-	GetOrCreate(chatID, telegramID int64, username, firstName string) (*models.User, error)
-	GetStats(chatID, telegramID int64, username, firstName string) (*UserStats, error)
-	GetLeaderboard(chatID int64) ([]models.User, error)
+	GetOrCreate(ctx context.Context, chatID, telegramID int64, username, firstName string) (domain.User, error)
+	GetStats(ctx context.Context, chatID, telegramID int64, username, firstName string) (*domain.UserStats, error)
+	GetLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
 	DailyLimit() int64
 }
 
-// userService implements UserSvc interface
 type userService struct {
-	repo repository.UserRepository
+	usersRepository    repository.UserRepository
+	postingsRepository repository.PostingRepository
+	dailyLimit         int64
 }
 
-func NewUserService(repo repository.UserRepository) *userService {
-	return &userService{repo: repo}
+func NewUserService(users repository.UserRepository, postings repository.PostingRepository, dailyLimit int64) *userService {
+	return &userService{usersRepository: users, postingsRepository: postings, dailyLimit: dailyLimit}
 }
 
-func (s *userService) GetOrCreate(chatID, telegramID int64, username, firstName string) (*models.User, error) {
-	return s.repo.GetOrCreateUser(chatID, telegramID, username, firstName)
+func (s *userService) GetOrCreate(ctx context.Context, chatID, telegramID int64, username, firstName string) (domain.User, error) {
+	return s.usersRepository.GetOrCreate(ctx, chatID, telegramID, username, firstName)
 }
 
-func (s *userService) GetStats(chatID, telegramID int64, username, firstName string) (*UserStats, error) {
-	user, err := s.repo.GetOrCreateUser(chatID, telegramID, username, firstName)
+func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, username, firstName string) (*domain.UserStats, error) {
+	user, err := s.usersRepository.GetOrCreate(ctx, chatID, telegramID, username, firstName)
 	if err != nil {
 		return nil, err
 	}
 
-	remaining, err := s.repo.GetDailyRemaining(chatID, telegramID)
+	score, err := s.postingsRepository.Score(ctx, chatID, telegramID)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UserStats{
+	netSpent, err := s.postingsRepository.AllowanceSpentSince(ctx, chatID, telegramID, startOfUTCDay())
+	if err != nil {
+		return nil, err
+	}
+
+	return &domain.UserStats{
 		User:           user,
-		DailyRemaining: remaining,
-		DailyLimit:     s.repo.DailyLimit(),
+		Score:          score,
+		DailyRemaining: s.dailyLimit - netSpent,
+		DailyLimit:     s.dailyLimit,
 	}, nil
 }
 
-func (s *userService) GetLeaderboard(chatID int64) ([]models.User, error) {
-	return s.repo.GetChatStats(chatID)
+func (s *userService) GetLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {
+	return s.postingsRepository.Leaderboard(ctx, chatID)
 }
 
 func (s *userService) DailyLimit() int64 {
-	return s.repo.DailyLimit()
+	return s.dailyLimit
 }
