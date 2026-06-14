@@ -12,6 +12,7 @@ import (
 type BetService interface {
 	CanBet(ctx context.Context, chatID, telegramID int64) error
 	ApplyResult(ctx context.Context, chatID, telegramID int64, diceValue int) (*domain.BetResult, error)
+	ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error)
 	DailyLimit() int64
 }
 
@@ -22,6 +23,10 @@ type betService struct {
 
 func NewBetService(postingRepository repository.PostingRepository, dailyLimit int64) *betService {
 	return &betService{postingRepository: postingRepository, dailyLimit: dailyLimit}
+}
+
+func (s *betService) ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error) {
+	return s.postingRepository.ChatBetStats(ctx, chatID)
 }
 
 func (s *betService) CanBet(ctx context.Context, chatID, telegramID int64) error {

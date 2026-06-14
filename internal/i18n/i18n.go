@@ -15,7 +15,14 @@ type Messages struct {
 
 	// /me command
 	MeStats string
+	MeBets  string
 	MeError string
+
+	// /bet_stats command
+	BetStatsHeader string
+	BetStatsEmpty  string
+	BetStatsError  string
+	BetStatsEntry  string
 
 	// /stats command
 	StatsHeader   string
@@ -66,17 +73,17 @@ type Messages struct {
 	ReplyNotRegistered   string
 
 	// /stats_day, /stats_month, /stats_year commands
-	StatsPeriodHeader    string
-	StatsPeriodEmpty     string
-	StatsPeriodError     string
-	StatsPeriodPlusCount string
-	StatsPeriodMinusCount string
-	StatsPeriodRatio     string
-	StatsPeriodTotalPlus string
-	StatsPeriodTotalMinus string
-	StatsPeriodTopPlusers string
+	StatsPeriodHeader      string
+	StatsPeriodEmpty       string
+	StatsPeriodError       string
+	StatsPeriodPlusCount   string
+	StatsPeriodMinusCount  string
+	StatsPeriodRatio       string
+	StatsPeriodTotalPlus   string
+	StatsPeriodTotalMinus  string
+	StatsPeriodTopPlusers  string
 	StatsPeriodTopMinusers string
-	StatsPeriodTopEntry  string
+	StatsPeriodTopEntry    string
 
 	// Discord voice events
 	DiscordVoiceJoin  string

@@ -27,6 +27,29 @@ SELECT EXISTS (
       AND created_at >= ?
 ) AS has_bet;
 
+-- name: GetUserBetStats :one
+SELECT
+    CAST(COUNT(CASE WHEN op_type = 'bet_win'  THEN 1 END) AS INTEGER) AS won,
+    CAST(COUNT(CASE WHEN op_type = 'bet_lose' THEN 1 END) AS INTEGER) AS lost
+FROM postings
+WHERE chat_id = ? AND account_id = ? AND op_type IN ('bet_win', 'bet_lose');
+
+-- name: GetChatBetStats :many
+SELECT
+    u.telegram_id,
+    u.username,
+    u.first_name,
+    CAST(COUNT(CASE WHEN p.op_type = 'bet_win'  THEN 1 END) AS INTEGER) AS won,
+    CAST(COUNT(CASE WHEN p.op_type = 'bet_lose' THEN 1 END) AS INTEGER) AS lost
+FROM users u
+JOIN postings p
+    ON p.chat_id = u.chat_id
+   AND p.account_id = u.telegram_id
+   AND p.op_type IN ('bet_win', 'bet_lose')
+WHERE u.chat_id = ?
+GROUP BY u.id
+ORDER BY (won - lost) DESC;
+
 -- name: GetLeaderboard :many
 SELECT
     u.telegram_id,

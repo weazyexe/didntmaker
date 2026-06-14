@@ -50,6 +50,7 @@ func (h *Handlers) Register() {
 	h.bot.Handle("/stats", h.Stats)
 	h.bot.Handle("/balances", h.Balances)
 	h.bot.Handle("/bet", h.Bet)
+	h.bot.Handle("/bet_stats", h.BetStats)
 	h.bot.Handle("/add", h.Add)
 	if h.discordBindingRepo != nil {
 		h.bot.Handle("/discord_bind", h.DiscordBind)

@@ -21,5 +21,7 @@ func (h *Handlers) Me(c tele.Context) error {
 		return c.Send(h.msg.MeError)
 	}
 
-	return c.Send(fmt.Sprintf(h.msg.MeStats, stats.Score, stats.DailyRemaining, stats.DailyLimit))
+	msg := fmt.Sprintf(h.msg.MeStats, stats.Score, stats.DailyRemaining, stats.DailyLimit) +
+		fmt.Sprintf(h.msg.MeBets, stats.Won, stats.Lost)
+	return c.Send(msg)
 }
