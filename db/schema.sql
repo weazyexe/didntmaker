@@ -1,7 +1,3 @@
--- Canonical schema used by sqlc for code generation.
--- The runtime schema is produced by the goose migrations in db/migrations
--- and must stay in sync with this file.
-
 CREATE TABLE users (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     telegram_id INTEGER  NOT NULL,
@@ -13,8 +9,6 @@ CREATE TABLE users (
 );
 CREATE UNIQUE INDEX idx_telegram_chat ON users (telegram_id, chat_id);
 
--- Append-only ledger. Source of truth for both score and daily allowance.
--- One user action = several postings sharing the same op_id.
 CREATE TABLE postings (
     id           INTEGER  PRIMARY KEY AUTOINCREMENT,
     chat_id      INTEGER  NOT NULL,

@@ -27,18 +27,18 @@ type Handlers struct {
 
 func New(
 	bot *tele.Bot,
-	userSvc service.UserService,
-	balanceSvc service.BalanceService,
-	betSvc service.BetService,
-	discordBindingRepo repository.DiscordBindingRepository,
+	userService service.UserService,
+	balanceService service.BalanceService,
+	betService service.BetService,
+	discordBindingRepository repository.DiscordBindingRepository,
 	msg *i18n.Messages,
 ) *Handlers {
 	return &Handlers{
 		bot:                bot,
-		userService:        userSvc,
-		balanceService:     balanceSvc,
-		betService:         betSvc,
-		discordBindingRepo: discordBindingRepo,
+		userService:        userService,
+		balanceService:     balanceService,
+		betService:         betService,
+		discordBindingRepo: discordBindingRepository,
 		msg:                msg,
 	}
 }

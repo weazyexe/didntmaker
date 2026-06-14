@@ -1,6 +1,3 @@
-// Command migrate applies the embedded goose migrations to the database and
-// exits. The bot also runs these on startup; this is for running them on their
-// own (e.g. against a DB copy) without a bot token.
 package main
 
 import (

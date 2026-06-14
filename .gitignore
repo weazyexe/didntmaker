@@ -1,7 +1,5 @@
 .env
 *.db
 .claude
-
-# sqlc generated code (run `task generate`)
 /internal/database/gen/
 /bin/
