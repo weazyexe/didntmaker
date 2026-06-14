@@ -35,10 +35,9 @@ type Messages struct {
 	BalancesHeader       string
 	BalancesEmpty        string
 	BalancesError        string
-	BalancesFull         string
-	BalancesEmpty_       string
 	BalancesEntry        string
 	BalancesBetAvailable string
+	BalancesBetHint      string
 
 	// /bet command
 	BetNotRegistered string

@@ -23,24 +23,23 @@ func (h *Handlers) Balances(c tele.Context) error {
 	var sb strings.Builder
 	sb.WriteString(h.msg.BalancesHeader)
 
+	anyBetAvailable := false
 	for _, b := range balances {
 		displayName := b.User.FirstName
 		if b.User.Username != "" {
 			displayName = "@" + b.User.Username
 		}
 
-		status := ""
-		if b.Remaining == 0 {
-			status = h.msg.BalancesEmpty_
-		} else if b.Remaining == b.DailyLimit {
-			status = h.msg.BalancesFull
-		}
-
-		sb.WriteString(fmt.Sprintf(h.msg.BalancesEntry, displayName, b.Remaining, b.DailyLimit, status))
+		sb.WriteString(fmt.Sprintf(h.msg.BalancesEntry, displayName, b.Remaining, b.DailyLimit))
 		if b.BetAvailable {
 			sb.WriteString(h.msg.BalancesBetAvailable)
+			anyBetAvailable = true
 		}
 		sb.WriteString("\n")
+	}
+
+	if anyBetAvailable {
+		sb.WriteString(h.msg.BalancesBetHint)
 	}
 
 	return c.Send(sb.String())
