@@ -18,6 +18,7 @@ type PostingRepository interface {
 	Leaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
 	BetStats(ctx context.Context, chatID, accountID int64) (won, lost int64, err error)
 	ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error)
+	BetAccountsSince(ctx context.Context, chatID int64, since time.Time) (map[int64]bool, error)
 }
 
 type postingRepository struct {
@@ -139,4 +140,20 @@ func (r *postingRepository) Leaderboard(ctx context.Context, chatID int64) ([]do
 		})
 	}
 	return entries, nil
+}
+
+func (r *postingRepository) BetAccountsSince(ctx context.Context, chatID int64, since time.Time) (map[int64]bool, error) {
+	ids, err := r.queries.GetChatBetAccountsSince(ctx, gen.GetChatBetAccountsSinceParams{
+		ChatID:    chatID,
+		CreatedAt: since,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bet := make(map[int64]bool, len(ids))
+	for _, id := range ids {
+		bet[id] = true
+	}
+	return bet, nil
 }

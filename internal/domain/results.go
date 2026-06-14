@@ -38,9 +38,10 @@ type TransferAllResult struct {
 }
 
 type DailyBalance struct {
-	User       User
-	Remaining  int64
-	DailyLimit int64
+	User         User
+	Remaining    int64
+	DailyLimit   int64
+	BetAvailable bool
 }
 
 type AdjustResult struct {

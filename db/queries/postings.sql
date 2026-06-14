@@ -64,3 +64,7 @@ LEFT JOIN postings p
 WHERE u.chat_id = ?
 GROUP BY u.id
 ORDER BY score ASC;
+
+-- name: GetChatBetAccountsSince :many
+SELECT DISTINCT account_id FROM postings
+WHERE chat_id = ? AND op_type IN ('bet_win', 'bet_lose') AND created_at >= ?;
