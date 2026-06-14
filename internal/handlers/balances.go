@@ -39,7 +39,7 @@ func (h *Handlers) Balances(c tele.Context) error {
 	}
 
 	if anyBetAvailable {
-		sb.WriteString("\n\n")
+		sb.WriteString("\n")
 		sb.WriteString(h.msg.BalancesBetHint)
 	}
 
