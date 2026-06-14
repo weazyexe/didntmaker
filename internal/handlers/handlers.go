@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"regexp"
+	"time"
 
 	"weazyexe.dev/didntmaker/internal/i18n"
 	"weazyexe.dev/didntmaker/internal/repository"
@@ -18,27 +21,24 @@ type Handlers struct {
 	userService        service.UserService
 	balanceService     service.BalanceService
 	betService         service.BetService
-	transactionService service.TransactionService
 	discordBindingRepo repository.DiscordBindingRepository
 	msg                *i18n.Messages
 }
 
 func New(
 	bot *tele.Bot,
-	userSvc service.UserService,
-	balanceSvc service.BalanceService,
-	betSvc service.BetService,
-	txSvc service.TransactionService,
-	discordBindingRepo repository.DiscordBindingRepository,
+	userService service.UserService,
+	balanceService service.BalanceService,
+	betService service.BetService,
+	discordBindingRepository repository.DiscordBindingRepository,
 	msg *i18n.Messages,
 ) *Handlers {
 	return &Handlers{
 		bot:                bot,
-		userService:        userSvc,
-		balanceService:     balanceSvc,
-		betService:         betSvc,
-		transactionService: txSvc,
-		discordBindingRepo: discordBindingRepo,
+		userService:        userService,
+		balanceService:     balanceService,
+		betService:         betService,
+		discordBindingRepo: discordBindingRepository,
 		msg:                msg,
 	}
 }
@@ -61,12 +61,24 @@ func (h *Handlers) Register() {
 	slog.Info("handlers registered")
 }
 
-func logCommand(c tele.Context, command string) {
+func logCommand(c tele.Context, command string) func() {
+	reqID := newRequestID()
+	start := time.Now()
 	slog.Info("command received",
+		"req_id", reqID,
 		"command", command,
 		"user_id", c.Sender().ID,
 		"username", c.Sender().Username,
 		"chat_id", c.Chat().ID,
 		"payload", c.Message().Payload,
 	)
+	return func() {
+		slog.Info("command handled", "req_id", reqID, "command", command, "duration", time.Since(start))
+	}
+}
+
+func newRequestID() string {
+	var b [4]byte
+	_, _ = rand.Read(b[:])
+	return hex.EncodeToString(b[:])
 }

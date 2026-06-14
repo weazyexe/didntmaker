@@ -34,8 +34,8 @@ func main() {
 	}
 	slog.Info("database initialized")
 
-	userRepo := repository.NewUserRepository(db, cfg.DailyLimit)
-	txRepo := repository.NewTransactionRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	postingRepo := repository.NewPostingRepository(db)
 
 	var discordBindingRepo repository.DiscordBindingRepository
 	if cfg.DiscordToken != "" {
@@ -43,7 +43,7 @@ func main() {
 		slog.Info("discord integration enabled")
 	}
 
-	b, err := bot.New(cfg, userRepo, txRepo, discordBindingRepo)
+	b, err := bot.New(cfg, userRepo, postingRepo, discordBindingRepo)
 	if err != nil {
 		slog.Error("failed to create bot", "error", err)
 		os.Exit(1)

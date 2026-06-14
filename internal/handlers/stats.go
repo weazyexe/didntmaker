@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -8,9 +9,9 @@ import (
 )
 
 func (h *Handlers) Stats(c tele.Context) error {
-	logCommand(c, "/stats")
+	defer logCommand(c, "/stats")()
 
-	users, err := h.userService.GetLeaderboard(c.Chat().ID)
+	users, err := h.userService.GetLeaderboard(context.Background(), c.Chat().ID)
 	if err != nil {
 		return c.Send(h.msg.StatsError)
 	}
@@ -35,7 +36,7 @@ func (h *Handlers) Stats(c tele.Context) error {
 			displayName = "@" + user.Username
 		}
 
-		sb.WriteString(fmt.Sprintf(h.msg.StatsEntryFmt, prefix, displayName, user.Balance))
+		sb.WriteString(fmt.Sprintf(h.msg.StatsEntryFmt, prefix, displayName, user.Score))
 	}
 
 	return c.Send(sb.String())

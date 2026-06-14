@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 
@@ -97,7 +98,7 @@ func (s *discordService) handleVoiceStateUpdate(_ *discordgo.Session, e *discord
 		return
 	}
 
-	bindings, err := s.bindingRepo.GetByGuildID(e.GuildID)
+	bindings, err := s.bindingRepo.GetByGuildID(context.Background(), e.GuildID)
 	if err != nil {
 		slog.Error("failed to get discord bindings",
 			"guild_id", e.GuildID,

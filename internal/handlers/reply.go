@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
-	"weazyexe.dev/didntmaker/internal/service"
+	"weazyexe.dev/didntmaker/internal/domain"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -28,7 +29,7 @@ func (h *Handlers) Reply(c tele.Context) error {
 		return nil
 	}
 
-	logCommand(c, "reply")
+	defer logCommand(c, "reply")()
 
 	target := reply.Sender
 	if target == nil {
@@ -43,9 +44,9 @@ func (h *Handlers) Reply(c tele.Context) error {
 		return h.replyToAll(c, chatID, senderID, delta)
 	}
 
-	result, err := h.balanceService.Transfer(chatID, senderID, target.ID, target.Username, delta)
+	result, err := h.balanceService.Transfer(context.Background(), chatID, senderID, target.ID, target.Username, delta)
 	if err != nil {
-		return h.handleTransferError(c, err)
+		return h.handleTransferError(c, err, result)
 	}
 
 	displayName := result.Target.FirstName
@@ -60,13 +61,13 @@ func (h *Handlers) Reply(c tele.Context) error {
 }
 
 func (h *Handlers) replyToAll(c tele.Context, chatID, senderID, delta int64) error {
-	result, err := h.balanceService.TransferToAll(chatID, senderID, delta)
+	result, err := h.balanceService.TransferToAll(context.Background(), chatID, senderID, delta)
 	if err != nil {
-		if errors.Is(err, service.ErrNoUsersInChat) {
+		if errors.Is(err, domain.ErrNoUsersInChat) {
 			return c.Send(h.msg.ReplyAllNoUsers)
 		}
-		if errors.Is(err, service.ErrInsufficientLimit) {
-			return c.Send(fmt.Sprintf(h.msg.ReplyAllNotEnough, result.TotalCost, 0))
+		if errors.Is(err, domain.ErrInsufficientLimit) {
+			return c.Send(fmt.Sprintf(h.msg.ReplyAllNotEnough, result.TotalCost, result.Remaining))
 		}
 		return c.Send(h.msg.ReplyAllError)
 	}
@@ -77,16 +78,18 @@ func (h *Handlers) replyToAll(c tele.Context, chatID, senderID, delta int64) err
 	return c.Send(fmt.Sprintf(h.msg.ReplyAllSuccessPos, delta))
 }
 
-func (h *Handlers) handleTransferError(c tele.Context, err error) error {
+func (h *Handlers) handleTransferError(c tele.Context, err error, result *domain.TransferResult) error {
 	switch {
-	case errors.Is(err, service.ErrSelfTransfer):
+	case errors.Is(err, domain.ErrSelfTransfer):
 		return c.Send(h.msg.ReplySelfError)
-	case errors.Is(err, service.ErrTransactionLimit):
-		return c.Send(h.msg.ReplyLimitExceeded)
-	case errors.Is(err, service.ErrUserNotFound):
+	case errors.Is(err, domain.ErrUserNotFound):
 		return c.Send(h.msg.ReplyTargetNotFound)
-	case errors.Is(err, service.ErrInsufficientLimit):
-		return c.Send(fmt.Sprintf(h.msg.ReplyNotEnough, 0, h.balanceService.DailyLimit()))
+	case errors.Is(err, domain.ErrInsufficientLimit):
+		remaining := int64(0)
+		if result != nil {
+			remaining = result.Remaining
+		}
+		return c.Send(fmt.Sprintf(h.msg.ReplyNotEnough, remaining, h.balanceService.DailyLimit()))
 	default:
 		return c.Send(h.msg.ReplyError)
 	}

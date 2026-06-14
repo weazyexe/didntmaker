@@ -1,27 +1,29 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
-	"weazyexe.dev/didntmaker/internal/service"
+	"weazyexe.dev/didntmaker/internal/domain"
 
 	tele "gopkg.in/telebot.v3"
 )
 
 func (h *Handlers) Bet(c tele.Context) error {
-	logCommand(c, "/bet")
+	defer logCommand(c, "/bet")()
+	ctx := context.Background()
 	chatID := c.Chat().ID
 	telegramID := c.Sender().ID
 
-	_, err := h.userService.GetOrCreate(chatID, telegramID, c.Sender().Username, c.Sender().FirstName)
+	_, err := h.userService.GetOrCreate(ctx, chatID, telegramID, c.Sender().Username, c.Sender().FirstName)
 	if err != nil {
 		return c.Send(h.msg.BetNotRegistered)
 	}
 
-	if err := h.betService.CanBet(chatID, telegramID); err != nil {
-		if errors.Is(err, service.ErrBetAlreadyUsed) {
+	if err := h.betService.CanBet(ctx, chatID, telegramID); err != nil {
+		if errors.Is(err, domain.ErrBetAlreadyUsed) {
 			return c.Send(h.msg.BetAlreadyUsed)
 		}
 		return c.Send(h.msg.BetError)
@@ -34,7 +36,7 @@ func (h *Handlers) Bet(c tele.Context) error {
 
 	diceValue := msg.Dice.Value
 
-	result, err := h.betService.ApplyResult(chatID, telegramID, diceValue)
+	result, err := h.betService.ApplyResult(ctx, chatID, telegramID, diceValue)
 	if err != nil {
 		return c.Send(h.msg.BetResultError)
 	}

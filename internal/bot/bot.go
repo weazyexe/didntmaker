@@ -18,11 +18,11 @@ type Bot struct {
 	discord service.DiscordService
 }
 
-func New(cfg *config.Config, userRepo repository.UserRepository, txRepo repository.TransactionRepository, discordBindingRepo repository.DiscordBindingRepository) (*Bot, error) {
-	return NewWithLang(cfg, userRepo, txRepo, discordBindingRepo, i18n.Default())
+func New(cfg *config.Config, userRepo repository.UserRepository, postingRepo repository.PostingRepository, discordBindingRepo repository.DiscordBindingRepository) (*Bot, error) {
+	return NewWithLang(cfg, userRepo, postingRepo, discordBindingRepo, i18n.Default())
 }
 
-func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, txRepo repository.TransactionRepository, discordBindingRepo repository.DiscordBindingRepository, lang i18n.Lang) (*Bot, error) {
+func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, postingRepo repository.PostingRepository, discordBindingRepo repository.DiscordBindingRepository, lang i18n.Lang) (*Bot, error) {
 	slog.Info("creating bot instance", "lang", lang)
 
 	pref := tele.Settings{
@@ -36,25 +36,22 @@ func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, txRepo 
 		return nil, err
 	}
 
-	// Create services
-	txSvc := service.NewTransactionService(txRepo)
-	userSvc := service.NewUserService(userRepo)
-	balanceSvc := service.NewBalanceService(userRepo, txSvc, cfg.SuperAdmin)
-	betSvc := service.NewBetService(userRepo, txSvc)
+	userService := service.NewUserService(userRepo, postingRepo, cfg.DailyLimit)
+	balanceService := service.NewBalanceService(userRepo, postingRepo, cfg.DailyLimit, cfg.SuperAdmin)
+	betService := service.NewBetService(postingRepo, cfg.DailyLimit)
 
-	// Create and register handlers
-	h := handlers.New(b, userSvc, balanceSvc, betSvc, txSvc, discordBindingRepo, i18n.Get(lang))
+	h := handlers.New(b, userService, balanceService, betService, discordBindingRepo, i18n.Get(lang))
 	h.Register()
 
 	result := &Bot{bot: b}
 
 	// Initialize Discord service if token is provided
 	if cfg.DiscordToken != "" && discordBindingRepo != nil {
-		discordSvc, err := service.NewDiscordService(cfg.DiscordToken, discordBindingRepo, b, i18n.Get(lang))
+		discordService, err := service.NewDiscordService(cfg.DiscordToken, discordBindingRepo, b, i18n.Get(lang))
 		if err != nil {
 			slog.Error("failed to create discord service", "error", err)
 		} else {
-			result.discord = discordSvc
+			result.discord = discordService
 			slog.Info("discord service created")
 		}
 	}

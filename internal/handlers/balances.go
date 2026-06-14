@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -8,9 +9,9 @@ import (
 )
 
 func (h *Handlers) Balances(c tele.Context) error {
-	logCommand(c, "/balances")
+	defer logCommand(c, "/balances")()
 
-	balances, err := h.balanceService.GetDailyBalances(c.Chat().ID)
+	balances, err := h.balanceService.GetDailyBalances(context.Background(), c.Chat().ID)
 	if err != nil {
 		return c.Send(h.msg.BalancesError)
 	}
