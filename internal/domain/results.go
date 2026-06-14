@@ -5,6 +5,8 @@ type UserStats struct {
 	Score          int64
 	DailyRemaining int64
 	DailyLimit     int64
+	Won            int64
+	Lost           int64
 }
 
 type LeaderboardEntry struct {
@@ -12,6 +14,14 @@ type LeaderboardEntry struct {
 	Username   string
 	FirstName  string
 	Score      int64
+}
+
+type BetStatEntry struct {
+	TelegramID int64
+	Username   string
+	FirstName  string
+	Won        int64
+	Lost       int64
 }
 
 type TransferResult struct {

@@ -16,6 +16,8 @@ type PostingRepository interface {
 	ChatAllowanceSpentSince(ctx context.Context, chatID int64, since time.Time) (map[int64]int64, error)
 	HasBetSince(ctx context.Context, chatID, accountID int64, since time.Time) (bool, error)
 	Leaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
+	BetStats(ctx context.Context, chatID, accountID int64) (won, lost int64, err error)
+	ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error)
 }
 
 type postingRepository struct {
@@ -92,6 +94,33 @@ func (r *postingRepository) HasBetSince(ctx context.Context, chatID, accountID i
 		return false, err
 	}
 	return has != 0, nil
+}
+
+func (r *postingRepository) BetStats(ctx context.Context, chatID, accountID int64) (won, lost int64, err error) {
+	row, err := r.queries.GetUserBetStats(ctx, gen.GetUserBetStatsParams{ChatID: chatID, AccountID: accountID})
+	if err != nil {
+		return 0, 0, err
+	}
+	return row.Won, row.Lost, nil
+}
+
+func (r *postingRepository) ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error) {
+	rows, err := r.queries.GetChatBetStats(ctx, chatID)
+	if err != nil {
+		return nil, err
+	}
+
+	entries := make([]domain.BetStatEntry, 0, len(rows))
+	for _, row := range rows {
+		entries = append(entries, domain.BetStatEntry{
+			TelegramID: row.TelegramID,
+			Username:   row.Username,
+			FirstName:  row.FirstName,
+			Won:        row.Won,
+			Lost:       row.Lost,
+		})
+	}
+	return entries, nil
 }
 
 func (r *postingRepository) Leaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {

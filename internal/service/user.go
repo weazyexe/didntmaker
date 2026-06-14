@@ -44,11 +44,18 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		return nil, err
 	}
 
+	won, lost, err := s.postingsRepository.BetStats(ctx, chatID, telegramID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &domain.UserStats{
 		User:           user,
 		Score:          score,
 		DailyRemaining: s.dailyLimit - netSpent,
 		DailyLimit:     s.dailyLimit,
+		Won:            won,
+		Lost:           lost,
 	}, nil
 }
 
