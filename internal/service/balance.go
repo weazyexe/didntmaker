@@ -117,7 +117,13 @@ func (s *balanceService) GetDailyBalances(ctx context.Context, chatID int64) ([]
 		return nil, err
 	}
 
-	netSpent, err := s.ledger.ChatAllowanceSpentSince(ctx, chatID, startOfUTCDay())
+	today := startOfUTCDay()
+	netSpent, err := s.ledger.ChatAllowanceSpentSince(ctx, chatID, today)
+	if err != nil {
+		return nil, err
+	}
+
+	betToday, err := s.ledger.BetAccountsSince(ctx, chatID, today)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +132,10 @@ func (s *balanceService) GetDailyBalances(ctx context.Context, chatID int64) ([]
 	for _, u := range users {
 		remaining := s.dailyLimit - netSpent[u.TelegramID]
 		result = append(result, domain.DailyBalance{
-			User:       u,
-			Remaining:  remaining,
-			DailyLimit: s.dailyLimit,
+			User:         u,
+			Remaining:    remaining,
+			DailyLimit:   s.dailyLimit,
+			BetAvailable: !betToday[u.TelegramID],
 		})
 	}
 	return result, nil

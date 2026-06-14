@@ -37,6 +37,10 @@ func (h *Handlers) Balances(c tele.Context) error {
 		}
 
 		sb.WriteString(fmt.Sprintf(h.msg.BalancesEntry, displayName, b.Remaining, b.DailyLimit, status))
+		if b.BetAvailable {
+			sb.WriteString(h.msg.BalancesBetAvailable)
+		}
+		sb.WriteString("\n")
 	}
 
 	return c.Send(sb.String())

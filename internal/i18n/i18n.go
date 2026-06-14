@@ -32,12 +32,13 @@ type Messages struct {
 	StatsEntryFmt string
 
 	// /balances command
-	BalancesHeader string
-	BalancesEmpty  string
-	BalancesError  string
-	BalancesFull   string
-	BalancesEmpty_ string
-	BalancesEntry  string
+	BalancesHeader       string
+	BalancesEmpty        string
+	BalancesError        string
+	BalancesFull         string
+	BalancesEmpty_       string
+	BalancesEntry        string
+	BalancesBetAvailable string
 
 	// /bet command
 	BetNotRegistered string
