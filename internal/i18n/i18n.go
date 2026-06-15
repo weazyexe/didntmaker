@@ -100,6 +100,9 @@ type Messages struct {
 	DiscordUnbindUsage      string
 	DiscordUnbindError      string
 	DiscordUnbindSuccess    string
+
+	// service strings
+	RateLimitError string
 }
 
 // Default returns the default language (Russian)

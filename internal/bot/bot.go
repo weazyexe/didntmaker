@@ -10,6 +10,7 @@ import (
 	"weazyexe.dev/didntmaker/internal/repository"
 	"weazyexe.dev/didntmaker/internal/service"
 
+	"golang.org/x/time/rate"
 	tele "gopkg.in/telebot.v3"
 )
 
@@ -30,24 +31,27 @@ func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, posting
 		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
 	}
 
+	messages := i18n.Get(lang)
 	b, err := tele.NewBot(pref)
 	if err != nil {
 		slog.Error("failed to create telebot", "error", err)
 		return nil, err
 	}
 
+	b.Use(newRateLimiter(rate.Limit(cfg.RateLimitPerSec), cfg.RateLimitBurst, messages).Middleware())
+
 	userService := service.NewUserService(userRepo, postingRepo, cfg.DailyLimit)
 	balanceService := service.NewBalanceService(userRepo, postingRepo, cfg.DailyLimit, cfg.SuperAdmin)
 	betService := service.NewBetService(postingRepo, cfg.DailyLimit)
 
-	h := handlers.New(b, userService, balanceService, betService, discordBindingRepo, i18n.Get(lang))
+	h := handlers.New(b, userService, balanceService, betService, discordBindingRepo, messages)
 	h.Register()
 
 	result := &Bot{bot: b}
 
 	// Initialize Discord service if token is provided
 	if cfg.DiscordToken != "" && discordBindingRepo != nil {
-		discordService, err := service.NewDiscordService(cfg.DiscordToken, discordBindingRepo, b, i18n.Get(lang))
+		discordService, err := service.NewDiscordService(cfg.DiscordToken, discordBindingRepo, b, messages)
 		if err != nil {
 			slog.Error("failed to create discord service", "error", err)
 		} else {

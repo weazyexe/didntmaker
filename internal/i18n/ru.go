@@ -157,5 +157,7 @@ guild_id — это ID сервера в discord. чтобы получить:
 		DiscordUnbindUsage:      "формат: /discord_unbind <guild_id>",
 		DiscordUnbindError:      "не справляюсь",
 		DiscordUnbindSuccess:    "discord сервер %s отвязан от этого чата",
+
+		RateLimitError: "сосал??",
 	}
 }
