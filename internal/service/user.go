@@ -54,6 +54,30 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		return nil, err
 	}
 
+	now := nowUTC()
+	weekDelta, err := s.postingsRepository.ScoreSince(ctx, chatID, telegramID, now.AddDate(0, 0, -7))
+	if err != nil {
+		return nil, err
+	}
+
+	monthDelta, err := s.postingsRepository.ScoreSince(ctx, chatID, telegramID, now.AddDate(0, 0, -30))
+	if err != nil {
+		return nil, err
+	}
+
+	incoming, err := s.postingsRepository.IncomingByCounterparty(ctx, chatID, telegramID)
+	if err != nil {
+		return nil, err
+	}
+
+	outgoing, err := s.postingsRepository.OutgoingByAccount(ctx, chatID, telegramID)
+	if err != nil {
+		return nil, err
+	}
+
+	fan, hater := topPlus(incoming), topMinus(incoming)
+	favorite, victim := topPlus(outgoing), topMinus(outgoing)
+
 	return &domain.UserStats{
 		User:           user,
 		Score:          score,
@@ -62,7 +86,41 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		Won:            won,
 		Lost:           lost,
 		BetAvailable:   !betUsed,
+		WeekDelta:      weekDelta,
+		MonthDelta:     monthDelta,
+		Fan:            fan,
+		Hater:          hater,
+		Favorite:       favorite,
+		Victim:         victim,
 	}, nil
+}
+
+// topPlus returns the counterparty with the largest positive total, or nil if none.
+func topPlus(aggs []domain.CounterpartyAgg) *domain.Counterparty {
+	var best *domain.CounterpartyAgg
+	for i := range aggs {
+		if aggs[i].Plus > 0 && (best == nil || aggs[i].Plus > best.Plus) {
+			best = &aggs[i]
+		}
+	}
+	if best == nil {
+		return nil
+	}
+	return &domain.Counterparty{Username: best.Username, FirstName: best.FirstName, Amount: best.Plus}
+}
+
+// topMinus returns the counterparty with the largest negative total, or nil if none.
+func topMinus(aggs []domain.CounterpartyAgg) *domain.Counterparty {
+	var best *domain.CounterpartyAgg
+	for i := range aggs {
+		if aggs[i].Minus > 0 && (best == nil || aggs[i].Minus > best.Minus) {
+			best = &aggs[i]
+		}
+	}
+	if best == nil {
+		return nil
+	}
+	return &domain.Counterparty{Username: best.Username, FirstName: best.FirstName, Amount: best.Minus}
 }
 
 func (s *userService) GetLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {

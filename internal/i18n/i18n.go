@@ -13,12 +13,23 @@ type Messages struct {
 	Start string
 	Help  string
 
-	// /me command
-	MeStats    string
+	// /info command (stats layout)
+	MeHeader   string
+	MeScore    string
+	MeWeek     string
+	MeMonth    string
+	MeLimit    string
 	MeBets     string
 	MeBetReady string
 	MeBetUsed  string
+	MeFan      string
+	MeHater    string
+	MeFavorite string
+	MeVictim   string
 	MeError    string
+
+	// /info command
+	InfoOnBot string
 
 	// /bet_stats command
 	BetStatsHeader string
@@ -42,13 +53,12 @@ type Messages struct {
 	BalancesBetHint      string
 
 	// /bet command
-	BetNotRegistered string
-	BetAlreadyUsed   string
-	BetError         string
-	BetDiceError     string
-	BetResultError   string
-	BetWin           string
-	BetLose          string
+	BetAlreadyUsed string
+	BetError       string
+	BetDiceError   string
+	BetResultError string
+	BetWin         string
+	BetLose        string
 
 	// /add command (admin)
 	AddUsage       string
@@ -59,7 +69,6 @@ type Messages struct {
 	AddSuccess     string
 
 	// Reply handler
-	ReplyLimitExceeded   string
 	ReplyUnknownTarget   string
 	ReplySelfError       string
 	ReplyNotEnough       string
@@ -72,20 +81,6 @@ type Messages struct {
 	ReplyAllError        string
 	ReplyAllSuccessNeg   string
 	ReplyAllSuccessPos   string
-	ReplyNotRegistered   string
-
-	// /stats_day, /stats_month, /stats_year commands
-	StatsPeriodHeader      string
-	StatsPeriodEmpty       string
-	StatsPeriodError       string
-	StatsPeriodPlusCount   string
-	StatsPeriodMinusCount  string
-	StatsPeriodRatio       string
-	StatsPeriodTotalPlus   string
-	StatsPeriodTotalMinus  string
-	StatsPeriodTopPlusers  string
-	StatsPeriodTopMinusers string
-	StatsPeriodTopEntry    string
 
 	// Discord voice events
 	DiscordVoiceJoin  string

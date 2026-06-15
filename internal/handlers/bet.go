@@ -17,11 +17,6 @@ func (h *Handlers) Bet(c tele.Context) error {
 	chatID := c.Chat().ID
 	telegramID := c.Sender().ID
 
-	_, err := h.userService.GetOrCreate(ctx, chatID, telegramID, c.Sender().Username, c.Sender().FirstName)
-	if err != nil {
-		return c.Send(h.msg.BetNotRegistered)
-	}
-
 	if err := h.betService.CanBet(ctx, chatID, telegramID); err != nil {
 		if errors.Is(err, domain.ErrBetAlreadyUsed) {
 			return c.Send(h.msg.BetAlreadyUsed)

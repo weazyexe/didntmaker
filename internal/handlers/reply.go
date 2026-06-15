@@ -49,15 +49,12 @@ func (h *Handlers) Reply(c tele.Context) error {
 		return h.handleTransferError(c, err, result)
 	}
 
-	displayName := result.Target.FirstName
-	if result.Target.Username != "" {
-		displayName = "@" + result.Target.Username
-	}
+	name := displayName(result.Target.Username, result.Target.FirstName)
 
 	if delta < 0 {
-		return c.Send(fmt.Sprintf(h.msg.ReplySuccessNegative, displayName, delta))
+		return c.Send(fmt.Sprintf(h.msg.ReplySuccessNegative, name, delta))
 	}
-	return c.Send(fmt.Sprintf(h.msg.ReplySuccessPositive, displayName, delta))
+	return c.Send(fmt.Sprintf(h.msg.ReplySuccessPositive, name, delta))
 }
 
 func (h *Handlers) replyToAll(c tele.Context, chatID, senderID, delta int64) error {

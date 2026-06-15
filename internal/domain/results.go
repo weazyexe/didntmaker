@@ -8,6 +8,29 @@ type UserStats struct {
 	Won            int64
 	Lost           int64
 	BetAvailable   bool
+
+	WeekDelta  int64
+	MonthDelta int64
+
+	Fan      *Counterparty // кто тебя больше всех плюсует
+	Hater    *Counterparty // кто больше всех минусует
+	Favorite *Counterparty // кого ты больше всех плюсуешь
+	Victim   *Counterparty // кого больше всех минусуешь
+}
+
+// Counterparty is the other participant in a stats line; Amount is a positive magnitude.
+type Counterparty struct {
+	Username  string
+	FirstName string
+	Amount    int64
+}
+
+// CounterpartyAgg is one grouped row: a participant with their total plus/minus.
+type CounterpartyAgg struct {
+	Username  string
+	FirstName string
+	Plus      int64
+	Minus     int64
 }
 
 type LeaderboardEntry struct {

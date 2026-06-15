@@ -68,3 +68,34 @@ ORDER BY score ASC;
 -- name: GetChatBetAccountsSince :many
 SELECT DISTINCT account_id FROM postings
 WHERE chat_id = ? AND op_type IN ('bet_win', 'bet_lose') AND created_at >= ?;
+
+-- name: GetScoreSince :one
+SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) AS delta
+FROM postings
+WHERE chat_id = ? AND account_id = ? AND book = 'score' AND created_at >= ?;
+
+-- name: GetIncomingByCounterparty :many
+SELECT
+    u.username,
+    u.first_name,
+    CAST(COALESCE(SUM(CASE WHEN p.amount > 0 THEN p.amount ELSE 0 END), 0) AS INTEGER) AS plus,
+    CAST(COALESCE(SUM(CASE WHEN p.amount < 0 THEN -p.amount ELSE 0 END), 0) AS INTEGER) AS minus
+FROM postings p
+JOIN users u
+    ON u.chat_id = p.chat_id
+   AND u.telegram_id = p.counterparty
+WHERE p.chat_id = ? AND p.account_id = ? AND p.book = 'score' AND p.counterparty != 0
+GROUP BY p.counterparty;
+
+-- name: GetOutgoingByAccount :many
+SELECT
+    u.username,
+    u.first_name,
+    CAST(COALESCE(SUM(CASE WHEN p.amount > 0 THEN p.amount ELSE 0 END), 0) AS INTEGER) AS plus,
+    CAST(COALESCE(SUM(CASE WHEN p.amount < 0 THEN -p.amount ELSE 0 END), 0) AS INTEGER) AS minus
+FROM postings p
+JOIN users u
+    ON u.chat_id = p.chat_id
+   AND u.telegram_id = p.account_id
+WHERE p.chat_id = ? AND p.counterparty = ? AND p.book = 'score'
+GROUP BY p.account_id;

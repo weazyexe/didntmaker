@@ -19,6 +19,9 @@ type PostingRepository interface {
 	BetStats(ctx context.Context, chatID, accountID int64) (won, lost int64, err error)
 	ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error)
 	BetAccountsSince(ctx context.Context, chatID int64, since time.Time) (map[int64]bool, error)
+	ScoreSince(ctx context.Context, chatID, accountID int64, since time.Time) (int64, error)
+	IncomingByCounterparty(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error)
+	OutgoingByAccount(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error)
 }
 
 type postingRepository struct {
@@ -156,4 +159,54 @@ func (r *postingRepository) BetAccountsSince(ctx context.Context, chatID int64, 
 		bet[id] = true
 	}
 	return bet, nil
+}
+
+func (r *postingRepository) ScoreSince(ctx context.Context, chatID, accountID int64, since time.Time) (int64, error) {
+	return r.queries.GetScoreSince(ctx, gen.GetScoreSinceParams{
+		ChatID:    chatID,
+		AccountID: accountID,
+		CreatedAt: since,
+	})
+}
+
+func (r *postingRepository) IncomingByCounterparty(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error) {
+	rows, err := r.queries.GetIncomingByCounterparty(ctx, gen.GetIncomingByCounterpartyParams{
+		ChatID:    chatID,
+		AccountID: accountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	aggs := make([]domain.CounterpartyAgg, 0, len(rows))
+	for _, row := range rows {
+		aggs = append(aggs, domain.CounterpartyAgg{
+			Username:  row.Username,
+			FirstName: row.FirstName,
+			Plus:      row.Plus,
+			Minus:     row.Minus,
+		})
+	}
+	return aggs, nil
+}
+
+func (r *postingRepository) OutgoingByAccount(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error) {
+	rows, err := r.queries.GetOutgoingByAccount(ctx, gen.GetOutgoingByAccountParams{
+		ChatID:       chatID,
+		Counterparty: accountID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	aggs := make([]domain.CounterpartyAgg, 0, len(rows))
+	for _, row := range rows {
+		aggs = append(aggs, domain.CounterpartyAgg{
+			Username:  row.Username,
+			FirstName: row.FirstName,
+			Plus:      row.Plus,
+			Minus:     row.Minus,
+		})
+	}
+	return aggs, nil
 }
