@@ -12,6 +12,7 @@ import (
 
 	"golang.org/x/time/rate"
 	tele "gopkg.in/telebot.v3"
+	"gopkg.in/telebot.v3/middleware"
 )
 
 type Bot struct {
@@ -38,6 +39,7 @@ func NewWithLang(cfg *config.Config, userRepo repository.UserRepository, posting
 		return nil, err
 	}
 
+	b.Use(middleware.Recover())
 	b.Use(newRateLimiter(rate.Limit(cfg.RateLimitPerSec), cfg.RateLimitBurst, messages).Middleware())
 
 	userService := service.NewUserService(userRepo, postingRepo, cfg.DailyLimit)
