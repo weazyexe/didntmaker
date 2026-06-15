@@ -73,6 +73,12 @@ func (b *Bot) Start() {
 		}
 	}
 
+	// drop updates queued while the bot was down, so we don't replay stale
+	// commands and point grants on restart
+	if err := b.bot.RemoveWebhook(true); err != nil {
+		slog.Warn("failed to drop pending updates", "error", err)
+	}
+
 	slog.Info("bot polling started")
 	b.bot.Start()
 }
