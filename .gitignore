@@ -1,5 +1,6 @@
 .env
 *.db
-.claude
+.claude/*
+!.claude/skills/
 /internal/database/gen/
 /bin/
