@@ -15,7 +15,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-var deltaRe = regexp.MustCompile(`^([+-]?\d+)$`)
+var deltaRe = regexp.MustCompile(`^([+-]\d+)$`)
 
 type Handlers struct {
 	bot                *tele.Bot
