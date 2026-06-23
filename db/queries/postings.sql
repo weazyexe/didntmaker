@@ -75,6 +75,21 @@ SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) AS delta
 FROM postings
 WHERE chat_id = ? AND account_id = ? AND book = 'score' AND created_at >= ?;
 
+-- name: GetExtremeDaysReceived :one
+-- Worst single-day total of minuses and best single-day total of pluses received
+-- from other people (peer transfers only). worst is negative, best is positive.
+SELECT
+    CAST(COALESCE(MIN(neg), 0) AS INTEGER) AS worst,
+    CAST(COALESCE(MAX(pos), 0) AS INTEGER) AS best
+FROM (
+    SELECT
+        SUM(CASE WHEN amount < 0 THEN amount ELSE 0 END) AS neg,
+        SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS pos
+    FROM postings
+    WHERE chat_id = ? AND account_id = ? AND book = 'score' AND counterparty != 0
+    GROUP BY date(created_at)
+);
+
 -- name: GetIncomingByCounterparty :many
 SELECT
     u.username,

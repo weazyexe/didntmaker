@@ -44,6 +44,16 @@ func (h *Handlers) sendStats(c tele.Context, target *tele.User) error {
 	fmt.Fprintf(&b, h.msg.MeWeek, signedTrend(stats.WeekDelta))
 	fmt.Fprintf(&b, h.msg.MeMonth, signedTrend(stats.MonthDelta))
 
+	if stats.WorstDayMinus > 0 || stats.BestDayPlus > 0 {
+		b.WriteString("\n")
+	}
+	if stats.WorstDayMinus > 0 {
+		fmt.Fprintf(&b, h.msg.MeWorstDay, formatNum(stats.WorstDayMinus))
+	}
+	if stats.BestDayPlus > 0 {
+		fmt.Fprintf(&b, h.msg.MeBestDay, formatNum(stats.BestDayPlus))
+	}
+
 	fmt.Fprintf(&b, h.msg.MeLimit, formatNum(stats.DailyRemaining), formatNum(stats.DailyLimit))
 	fmt.Fprintf(&b, h.msg.MeBets, stats.Won, stats.Lost)
 	if stats.BetAvailable {

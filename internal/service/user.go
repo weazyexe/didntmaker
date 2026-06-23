@@ -68,6 +68,11 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		return nil, err
 	}
 
+	worstDayMinus, bestDayPlus, err := s.postingsRepository.ExtremeDaysReceived(ctx, chatID, telegramID)
+	if err != nil {
+		return nil, err
+	}
+
 	incoming, err := s.postingsRepository.IncomingByCounterparty(ctx, chatID, telegramID)
 	if err != nil {
 		return nil, err
@@ -91,6 +96,8 @@ func (s *userService) GetStats(ctx context.Context, chatID, telegramID int64, us
 		BetAvailable:   !betUsed,
 		WeekDelta:      weekDelta,
 		MonthDelta:     monthDelta,
+		WorstDayMinus:  worstDayMinus,
+		BestDayPlus:    bestDayPlus,
 		Fan:            fan,
 		Hater:          hater,
 		Favorite:       favorite,

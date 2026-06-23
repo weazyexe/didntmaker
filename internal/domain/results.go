@@ -12,6 +12,9 @@ type UserStats struct {
 	WeekDelta  int64
 	MonthDelta int64
 
+	WorstDayMinus int64 // исторический максимум минусов, полученных за один день
+	BestDayPlus   int64 // исторический максимум плюсов, полученных за один день
+
 	Fan      *Counterparty // кто тебя больше всех плюсует
 	Hater    *Counterparty // кто больше всех минусует
 	Favorite *Counterparty // кого ты больше всех плюсуешь

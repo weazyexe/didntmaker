@@ -18,6 +18,8 @@ type Messages struct {
 	MeScore    string
 	MeWeek     string
 	MeMonth    string
+	MeWorstDay string
+	MeBestDay  string
 	MeLimit    string
 	MeBets     string
 	MeBetReady string

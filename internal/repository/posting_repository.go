@@ -20,6 +20,7 @@ type PostingRepository interface {
 	ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error)
 	BetAccountsSince(ctx context.Context, chatID int64, since time.Time) (map[int64]bool, error)
 	ScoreSince(ctx context.Context, chatID, accountID int64, since time.Time) (int64, error)
+	ExtremeDaysReceived(ctx context.Context, chatID, accountID int64) (worstMinus, bestPlus int64, err error)
 	IncomingByCounterparty(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error)
 	OutgoingByAccount(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error)
 }
@@ -170,6 +171,17 @@ func (r *postingRepository) ScoreSince(ctx context.Context, chatID, accountID in
 		AccountID: accountID,
 		CreatedAt: since,
 	})
+}
+
+func (r *postingRepository) ExtremeDaysReceived(ctx context.Context, chatID, accountID int64) (worstMinus, bestPlus int64, err error) {
+	row, err := r.queries.GetExtremeDaysReceived(ctx, gen.GetExtremeDaysReceivedParams{
+		ChatID:    chatID,
+		AccountID: accountID,
+	})
+	if err != nil {
+		return 0, 0, err
+	}
+	return -row.Worst, row.Best, nil // worst is negative; flip to a positive magnitude
 }
 
 func (r *postingRepository) IncomingByCounterparty(ctx context.Context, chatID, accountID int64) ([]domain.CounterpartyAgg, error) {
