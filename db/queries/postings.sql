@@ -50,7 +50,11 @@ WHERE u.chat_id = ?
 GROUP BY u.id
 ORDER BY (won - lost) DESC;
 
--- name: GetLeaderboard :many
+-- name: GetChatBetAccountsSince :many
+SELECT DISTINCT account_id FROM postings
+WHERE chat_id = ? AND op_type IN ('bet_win', 'bet_lose') AND created_at >= ?;
+
+-- name: GetLeaderboardSince :many
 SELECT
     u.telegram_id,
     u.username,
@@ -61,13 +65,10 @@ LEFT JOIN postings p
     ON p.chat_id = u.chat_id
    AND p.account_id = u.telegram_id
    AND p.book = 'score'
+   AND p.created_at >= ?
 WHERE u.chat_id = ?
 GROUP BY u.id
 ORDER BY score ASC;
-
--- name: GetChatBetAccountsSince :many
-SELECT DISTINCT account_id FROM postings
-WHERE chat_id = ? AND op_type IN ('bet_win', 'bet_lose') AND created_at >= ?;
 
 -- name: GetScoreSince :one
 SELECT CAST(COALESCE(SUM(amount), 0) AS INTEGER) AS delta

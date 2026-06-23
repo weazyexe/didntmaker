@@ -51,6 +51,8 @@ func (h *Handlers) Register() {
 
 	h.bot.Handle("/info", h.Info)
 	h.bot.Handle("/stats", h.Stats)
+	h.bot.Handle("/stats_week", h.StatsWeek)
+	h.bot.Handle("/stats_month", h.StatsMonth)
 	h.bot.Handle("/balances", h.Balances)
 	h.bot.Handle("/bet", h.Bet)
 	h.bot.Handle("/bet_stats", h.BetStats)

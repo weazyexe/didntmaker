@@ -15,7 +15,7 @@ type PostingRepository interface {
 	AllowanceSpentSince(ctx context.Context, chatID, accountID int64, since time.Time) (int64, error)
 	ChatAllowanceSpentSince(ctx context.Context, chatID int64, since time.Time) (map[int64]int64, error)
 	HasBetSince(ctx context.Context, chatID, accountID int64, since time.Time) (bool, error)
-	Leaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
+	LeaderboardSince(ctx context.Context, chatID int64, since time.Time) ([]domain.LeaderboardEntry, error)
 	BetStats(ctx context.Context, chatID, accountID int64) (won, lost int64, err error)
 	ChatBetStats(ctx context.Context, chatID int64) ([]domain.BetStatEntry, error)
 	BetAccountsSince(ctx context.Context, chatID int64, since time.Time) (map[int64]bool, error)
@@ -127,8 +127,11 @@ func (r *postingRepository) ChatBetStats(ctx context.Context, chatID int64) ([]d
 	return entries, nil
 }
 
-func (r *postingRepository) Leaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {
-	rows, err := r.queries.GetLeaderboard(ctx, chatID)
+func (r *postingRepository) LeaderboardSince(ctx context.Context, chatID int64, since time.Time) ([]domain.LeaderboardEntry, error) {
+	rows, err := r.queries.GetLeaderboardSince(ctx, gen.GetLeaderboardSinceParams{
+		ChatID:    chatID,
+		CreatedAt: since,
+	})
 	if err != nil {
 		return nil, err
 	}

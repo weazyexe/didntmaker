@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"weazyexe.dev/didntmaker/internal/domain"
 	"weazyexe.dev/didntmaker/internal/repository"
@@ -11,6 +12,8 @@ type UserService interface {
 	GetOrCreate(ctx context.Context, chatID, telegramID int64, username, firstName string) (domain.User, error)
 	GetStats(ctx context.Context, chatID, telegramID int64, username, firstName string) (*domain.UserStats, error)
 	GetLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
+	GetWeeklyLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
+	GetMonthlyLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error)
 	DailyLimit() int64
 }
 
@@ -124,7 +127,15 @@ func topMinus(aggs []domain.CounterpartyAgg) *domain.Counterparty {
 }
 
 func (s *userService) GetLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {
-	return s.postingsRepository.Leaderboard(ctx, chatID)
+	return s.postingsRepository.LeaderboardSince(ctx, chatID, time.Time{})
+}
+
+func (s *userService) GetWeeklyLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {
+	return s.postingsRepository.LeaderboardSince(ctx, chatID, nowUTC().AddDate(0, 0, -7))
+}
+
+func (s *userService) GetMonthlyLeaderboard(ctx context.Context, chatID int64) ([]domain.LeaderboardEntry, error) {
+	return s.postingsRepository.LeaderboardSince(ctx, chatID, nowUTC().AddDate(0, 0, -30))
 }
 
 func (s *userService) DailyLimit() int64 {

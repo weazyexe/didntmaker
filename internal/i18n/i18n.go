@@ -38,11 +38,13 @@ type Messages struct {
 	BetStatsEntry  string
 
 	// /stats command
-	StatsHeader   string
-	StatsEmpty    string
-	StatsError    string
-	StatsMedals   []string
-	StatsEntryFmt string
+	StatsHeader      string
+	StatsWeekHeader  string
+	StatsMonthHeader string
+	StatsEmpty       string
+	StatsError       string
+	StatsMedals      []string
+	StatsEntryFmt    string
 
 	// /balances command
 	BalancesHeader       string

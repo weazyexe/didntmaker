@@ -5,13 +5,30 @@ import (
 	"fmt"
 	"strings"
 
+	"weazyexe.dev/didntmaker/internal/domain"
+
 	tele "gopkg.in/telebot.v3"
 )
 
 func (h *Handlers) Stats(c tele.Context) error {
 	defer logCommand(c, "/stats")()
-
 	users, err := h.userService.GetLeaderboard(context.Background(), c.Chat().ID)
+	return h.sendLeaderboard(c, h.msg.StatsHeader, users, err)
+}
+
+func (h *Handlers) StatsWeek(c tele.Context) error {
+	defer logCommand(c, "/stats_week")()
+	users, err := h.userService.GetWeeklyLeaderboard(context.Background(), c.Chat().ID)
+	return h.sendLeaderboard(c, h.msg.StatsWeekHeader, users, err)
+}
+
+func (h *Handlers) StatsMonth(c tele.Context) error {
+	defer logCommand(c, "/stats_month")()
+	users, err := h.userService.GetMonthlyLeaderboard(context.Background(), c.Chat().ID)
+	return h.sendLeaderboard(c, h.msg.StatsMonthHeader, users, err)
+}
+
+func (h *Handlers) sendLeaderboard(c tele.Context, header string, users []domain.LeaderboardEntry, err error) error {
 	if err != nil {
 		return c.Send(h.msg.StatsError)
 	}
@@ -21,7 +38,7 @@ func (h *Handlers) Stats(c tele.Context) error {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(h.msg.StatsHeader)
+	sb.WriteString(header)
 
 	for i, user := range users {
 		var prefix string
